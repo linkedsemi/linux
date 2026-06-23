@@ -111,7 +111,7 @@ config IPMI_POWEROFF
 endif # IPMI_HANDLER
 
 config IPMI_KCS_BMC
-	tristate
+	tristate "IPMI BMC driver"
 
 config ASPEED_KCS_IPMI_BMC
 	depends on ARCH_ASPEED || COMPILE_TEST
