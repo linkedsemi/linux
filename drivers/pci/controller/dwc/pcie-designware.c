@@ -564,9 +564,13 @@ int dw_pcie_prog_outbound_atu(struct dw_pcie *pci,
 	dw_pcie_writel_atu_ob(pci, atu->index, PCIE_ATU_REGION_CTRL1, val);
 
 	val = PCIE_ATU_ENABLE | atu->ctrl2;
+	#define PCIE_ATU_OUTBOUND_DMA_BYPASS			BIT(27)
+	#define PCIE_ATU_OUTBOUND_HEADER_SUBSTITUTE_EN	BIT(23)
 	if (atu->type == PCIE_ATU_TYPE_MSG) {
-		/* The data-less messages only for now */
-		val |= PCIE_ATU_INHIBIT_PAYLOAD | atu->code;
+		val |= atu->code | PCIE_ATU_OUTBOUND_HEADER_SUBSTITUTE_EN;
+	}else
+	{
+		val |= PCIE_ATU_OUTBOUND_DMA_BYPASS;
 	}
 	dw_pcie_writel_atu_ob(pci, atu->index, PCIE_ATU_REGION_CTRL2, val);
 
@@ -586,6 +590,46 @@ int dw_pcie_prog_outbound_atu(struct dw_pcie *pci,
 
 	return -ETIMEDOUT;
 }
+EXPORT_SYMBOL_GPL(dw_pcie_prog_outbound_atu);
+
+void dw_pcie_outbound_atu_type_set(struct dw_pcie *pci, int index, int type)
+{
+	u32 val = dw_pcie_readl_atu_ob(pci, index, PCIE_ATU_REGION_CTRL1);
+	val &= ~0x1f;
+	val |= type;
+	dw_pcie_writel_atu_ob(pci, index, PCIE_ATU_REGION_CTRL1, val);
+}
+EXPORT_SYMBOL_GPL(dw_pcie_outbound_atu_type_set);
+
+void dw_pcie_outbound_atu_target_set(struct dw_pcie *pci, int index, u32 lower_target, u32 upper_target)
+{
+    dw_pcie_writel_atu_ob(pci, index, PCIE_ATU_LOWER_TARGET, lower_target);
+    dw_pcie_writel_atu_ob(pci, index, PCIE_ATU_UPPER_TARGET, upper_target);
+}
+EXPORT_SYMBOL_GPL(dw_pcie_outbound_atu_target_set);
+
+void dw_pcie_outbound_atu_tag_set(struct dw_pcie *pci, int index, u32 tag)
+{
+#define IATU_REGION_CTRL2_OFF_OUTBOUND_0_TAG_MASK 0xff00
+#define IATU_REGION_CTRL2_OFF_OUTBOUND_0_TAG_POS 8
+#define IATU_REGION_CTRL_2_OFF_OUTBOUND_0_TAG_SUBSTITUTE_EN_MASK 0x10000
+#define IATU_REGION_CTRL_2_OFF_OUTBOUND_0_TAG_SUBSTITUTE_EN_POS 16
+	u32 val = dw_pcie_readl_atu_ob(pci, index, PCIE_ATU_REGION_CTRL2);
+	val &= ~IATU_REGION_CTRL2_OFF_OUTBOUND_0_TAG_MASK;
+	if (tag) {
+		val |= (tag << IATU_REGION_CTRL2_OFF_OUTBOUND_0_TAG_POS) | IATU_REGION_CTRL_2_OFF_OUTBOUND_0_TAG_SUBSTITUTE_EN_MASK;
+	} else {
+		val &= ~IATU_REGION_CTRL_2_OFF_OUTBOUND_0_TAG_SUBSTITUTE_EN_MASK;
+	}
+	dw_pcie_writel_atu_ob(pci, index, PCIE_ATU_REGION_CTRL2, val);
+	val = dw_pcie_readl_atu_ob(pci, index, PCIE_ATU_REGION_CTRL2);
+
+#undef IATU_REGION_CTRL2_OFF_OUTBOUND_0_TAGMASK
+#undef IATU_REGION_CTRL2_OFF_OUTBOUND_0_TAGPOS
+#undef IATU_REGION_CTRL_2_OFF_OUTBOUND_0_TAG_SUBSTITUTE_EN_MASK
+#undef IATU_REGION_CTRL_2_OFF_OUTBOUND_0_TAG_SUBSTITUTE_EN_POS
+}
+EXPORT_SYMBOL_GPL(dw_pcie_outbound_atu_tag_set);
 
 static inline u32 dw_pcie_readl_atu_ib(struct dw_pcie *pci, u32 index, u32 reg)
 {
@@ -650,6 +694,49 @@ int dw_pcie_prog_inbound_atu(struct dw_pcie *pci, int index, int type,
 	return -ETIMEDOUT;
 }
 
+int ls_pcie_set_inbound_atu(struct dw_pcie *pci, int index, u32 ctrl1,u32 ctrl2,u64 base_addr,
+				u64 limit_addr, u64 target_addr,u8 cbuf_incr)
+{
+	u32 retries, val;
+
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_LOWER_BASE,
+			      lower_32_bits(base_addr));
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_UPPER_BASE,
+			      upper_32_bits(base_addr));
+
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_LOWER_TARGET,
+			      lower_32_bits(target_addr));
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_UPPER_TARGET,
+			      upper_32_bits(target_addr));
+
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_UPPER_LIMIT,
+				  upper_32_bits(limit_addr));
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_LIMIT,
+			      (lower_32_bits(limit_addr)&(~0xf)));
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_LIMIT,
+			      (lower_32_bits(limit_addr)&(~0xf))|cbuf_incr);
+
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_REGION_CTRL1, ctrl1);
+	dw_pcie_writel_atu_ib(pci, index, PCIE_ATU_REGION_CTRL2, ctrl2 | PCIE_ATU_ENABLE);
+
+	/*
+	 * Make sure ATU enable takes effect before any subsequent config
+	 * and I/O accesses.
+	 */
+	for (retries = 0; retries < LINK_WAIT_MAX_IATU_RETRIES; retries++) {
+		val = dw_pcie_readl_atu_ib(pci, index, PCIE_ATU_REGION_CTRL2);
+		if (val & PCIE_ATU_ENABLE)
+			return 0;
+
+		mdelay(LINK_WAIT_IATU);
+	}
+
+	dev_err(pci->dev, "Inbound iATU is not being enabled\n");
+
+	return -ETIMEDOUT;
+}
+EXPORT_SYMBOL_GPL(ls_pcie_set_inbound_atu);
+
 int dw_pcie_prog_ep_inbound_atu(struct dw_pcie *pci, u8 func_no, int index,
 				int type, u64 parent_bus_addr, u8 bar, size_t size)
 {
@@ -686,11 +773,13 @@ int dw_pcie_prog_ep_inbound_atu(struct dw_pcie *pci, u8 func_no, int index,
 
 	return -ETIMEDOUT;
 }
+EXPORT_SYMBOL_GPL(dw_pcie_prog_ep_inbound_atu);
 
 void dw_pcie_disable_atu(struct dw_pcie *pci, u32 dir, int index)
 {
 	dw_pcie_writel_atu(pci, dir, index, PCIE_ATU_REGION_CTRL2, 0);
 }
+EXPORT_SYMBOL_GPL(dw_pcie_disable_atu);
 
 int dw_pcie_wait_for_link(struct dw_pcie *pci)
 {
@@ -709,14 +798,6 @@ int dw_pcie_wait_for_link(struct dw_pcie *pci)
 		dev_info(pci->dev, "Phy link never came up\n");
 		return -ETIMEDOUT;
 	}
-
-	/*
-	 * As per PCIe r6.0, sec 6.6.1, a Downstream Port that supports Link
-	 * speeds greater than 5.0 GT/s, software must wait a minimum of 100 ms
-	 * after Link training completes before sending a Configuration Request.
-	 */
-	if (pci->max_link_speed > 2)
-		msleep(PCIE_RESET_CONFIG_WAIT_MS);
 
 	offset = dw_pcie_find_capability(pci, PCI_CAP_ID_EXP);
 	val = dw_pcie_readw_dbi(pci, offset + PCI_EXP_LNKSTA);
@@ -823,19 +904,22 @@ static void dw_pcie_link_set_max_link_width(struct dw_pcie *pci, u32 num_lanes)
 	/* Set link width speed control register */
 	lwsc = dw_pcie_readl_dbi(pci, PCIE_LINK_WIDTH_SPEED_CONTROL);
 	lwsc &= ~PORT_LOGIC_LINK_WIDTH_MASK;
-	lwsc |= PORT_LOGIC_LINK_WIDTH_1_LANES;
 	switch (num_lanes) {
 	case 1:
 		plc |= PORT_LINK_MODE_1_LANES;
+		lwsc |= PORT_LOGIC_LINK_WIDTH_1_LANES;
 		break;
 	case 2:
 		plc |= PORT_LINK_MODE_2_LANES;
+		lwsc |= PORT_LOGIC_LINK_WIDTH_2_LANES;
 		break;
 	case 4:
 		plc |= PORT_LINK_MODE_4_LANES;
+		lwsc |= PORT_LOGIC_LINK_WIDTH_4_LANES;
 		break;
 	case 8:
 		plc |= PORT_LINK_MODE_8_LANES;
+		lwsc |= PORT_LOGIC_LINK_WIDTH_8_LANES;
 		break;
 	case 16:
 		plc |= PORT_LINK_MODE_16_LANES;
@@ -1044,7 +1128,9 @@ static int dw_pcie_edma_irq_verify(struct dw_pcie *pci)
 	char name[15];
 	int ret;
 
-	if (pci->edma.nr_irqs > 1)
+	if (pci->edma.nr_irqs == 1)
+		return 0;
+	else if (pci->edma.nr_irqs > 1)
 		return pci->edma.nr_irqs != ch_cnt ? -EINVAL : 0;
 
 	ret = platform_get_irq_byname_optional(pdev, "dma");
