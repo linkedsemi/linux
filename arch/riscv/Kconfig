@@ -1023,6 +1023,7 @@ endmenu # "Platform type"
 config XUANTIE_ISA
 	bool "XUANTIE ISA in AFLAGS with -march=_xtheadc"
 	default n
+	select ARCH_USE_BUILTIN_BSWAP
 	depends on $(cc-option, -march=rv64imafdcv_xtheadc)
 	help
 	  This config enable XUANTIE custom instruction set.
