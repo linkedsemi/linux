@@ -1,0 +1,218 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/* Copyright (c) 2026 Linkedsemi */
+/* LS2010 mailbox (E906 <-> C908 inter-core) nodes — split out of
+ * ls2010-common.dtsi so the mailbox eSPI client subsystem lives in one
+ * self-contained file.  Channels covered:
+ *   ch0 — KCS      (IPMI KCS over mailbox)
+ *   ch1 — VUART    (host SOL console heartbeat)
+ *   ch2 — MMBI     (Mailbox-Managed BMC Interface, platform client)
+ *   ch3 — VWire    (multi-group Down-VWire over mailbox)
+ *   ch5 — Port80   (POST code capture)
+ * Included by ls2010-common.dtsi; the /reserved-memory, /aliases and /soc
+ * blocks merge with the ones in ls2010-common.dtsi, so shared-memory
+ * reservations, aliases and mailbox client nodes stay in their original
+ * parents and remain visible to phandle consumers in the same compilation
+ * unit.  All client nodes default to status = "disabled"; board DTS files
+ * enable the ones they need.
+ */
+
+/ {
+	reserved-memory {
+		/* E906 <-> C908 mailbox shared SRAM (64K), non-cacheable */
+		mbox_shared: mbox-shared@b0800000 {
+			no-map;
+			reg = <0x0 0xb0800000 0x0 0x10000>;
+		};
+
+		/* BMC<->Host MMBI shared DRAM, no-map, 64KB (aligned with
+		 * AST2700 Host visible window; B2H 32KB + H2B 32KB). */
+		mmbi_shared: mmbi-shared@d4e00000 {
+			no-map;
+			reg = <0x0 0xd4e00000 0x0 0x10000>;
+		};
+	};
+
+	aliases {
+		/*
+		 * VUART port line 0.  of_alias_get_id(np, "vuart") in
+		 * drivers/tty/serial/ls_vuart.c resolves the uart_port.line from
+		 * this; LS_VUART_NR_UARTS is 1 so only "vuart0" is valid.  The
+		 * vuart1 mailbox VUART is the sole host console endpoint.
+		 */
+		vuart0 = &vuart1;
+
+		/* espi-mmbi0 = single MMBI instance seq */
+		espi-mmbi0 = &mmbi0;
+		/* ls-pcc0 = single Port80 capture device seq */
+		ls-pcc0 = &pcc0;
+	};
+
+	soc {
+		/*
+		 * E906 <-> C908 inter-core mailbox.  Shared SRAM work
+		 * queues in reg index 0 (0xb0800000); notification goes
+		 * through the SCU cpu_soft software-interrupt registers,
+		 * mapped as two separate windows (reg index 1 and 2 below)
+		 * and driven by the driver with raw readl/writel under a
+		 * spinlock:
+		 *   - TX trigger: cpu_soft1_c908_intr @ CPU1_SYS_CFG
+		 *     (reg index 2, 0x60500000) + 0x2c8, write 1 raises
+		 *     the C908->E906 doorbell.
+		 *   - RX status/clear: cpu_soft1_e906_intr @ CPU0_SYS_CFG
+		 *     (reg index 1, 0x01300000) + 0x1fc, PLIC 102.  E906
+		 *     asserts by writing 1, Linux clears by writing 0
+		 *     (decision D2).  No source-side enable register exists:
+		 *     writing 1 directly asserts the PLIC IRQ, so the only
+		 *     control needed is the clear-on-write-0 path.
+		 * interrupts = <102 4>: cpu_soft1_e906_intr (user-confirmed
+		 * vector 102, 2026-08-14).  Both SCU windows are shared
+		 * with the syscon@01300000 / clk_cpu0 / clk_cpu1 nodes, so
+		 * the driver maps them non-exclusively (devm_ioremap).
+		 */
+		mailbox: mailbox@b0800000 {
+			compatible = "linkedsemi,ls-mbox";
+			reg = <0x0 0xb0800000 0x0 0x10000>,
+			      <0x0 0x01300000 0x0 0x1000>,	/* CPU0_SYS_CFG: RX window */
+			      <0x0 0x60500000 0x0 0x1000>;	/* CPU1_SYS_CFG: TX window */
+			interrupts = <102 4>;
+			#mbox-cells = <5>;	/* chan, tx_w, tx_d, rx_w, rx_d */
+			tx-trigger-offset  = <0x02c8>;
+			tx-trigger-mask    = <0x1>;
+			rx-intr-clr-offset = <0x01fc>;
+			rx-intr-clr-mask   = <0x1>;
+			status = "disabled";
+		};
+
+		/*
+		 * ch0: KCS over mailbox (Phase 1; also the ch0 memory-layout
+		 * declaration).  Under Model A' the KCS data is carried by the
+		 * shared host_kcs_env shadow register region (not mailbox FIFO);
+		 * mailbox ch0 carries only the IBF/OBF event doorbells.
+		 * reg index 0 = host_kcs_env shadow (address is a PLACEHOLDER
+		 * pending chip/E906 confirmation, design.md v7 section 5.2 / 8).
+		 * This is the sole working I/O region and the only resource the
+		 * kcs_bmc driver parses.  The old reg index 0 (0xb0800000, a
+		 * debug-only "ch0 slot" that duplicated the mailbox controller's
+		 * shared-SRAM base and was never mapped by the driver) is dropped.
+		 * Unit-address matches the single reg (0xb0800800), which is also
+		 * distinct from mailbox@b0800000 -- so no duplicate unit-address
+		 * and no dtc simple_bus_reg warning.
+		 */
+		kcs0: kcs@b0800800 {
+			compatible = "linkedsemi,kcs-bmc-mbox";
+			reg = <0x0 0xb0800800 0x0 0x10>;	/* reg#0 shadow host_kcs_env */
+			mboxes = <&mailbox 0 4 3 4 3>;	/* chan0, tx 4B×3, rx 4B×3 */
+			status = "disabled";
+		};
+
+		/*
+		 * ch1: VUART over mailbox (Phase 2), replacing ls2010-vuart.
+		 * Design v7 3.6: host SOL path is eSPI -> E906 -> mailbox -> C908;
+		 * mailbox ch1 carries the 8-byte vuart_hb_msg heartbeats while the
+		 * real bytes travel through the shared host_vuart_fifo rings
+		 * (b2h / h2b), whose base is reg index 0 below.
+		 *
+		 * S-2 semantic position: host_vuart_fifo is an INDEPENDENT shared
+		 * data region conceptually separate from the mailbox DATA channel.
+		 * The mailbox data FIFOs are owned by the mailbox controller and are
+		 * bound to this client ONLY through the mboxes phandle (heartbeat
+		 * channel 1) -- not through reg().  So reg#0 is the VUART ring base
+		 * and there is no structural overlap with mailbox data FIFOs.
+		 * The PLACEHOLDER value 0xb0800030/0x48 currently numerically equals
+		 * the frozen ch1 memory slot from design v7 2.2; that coincidence is
+		 * a placeholder artifact to be replaced with the REAL E906-offered
+		 * host_vuart_fifo symbol/offset (design v7 8 open_questions) and
+		 * MUST NOT be taken as claiming the VUART rings live inside the
+		 * mailbox data slot.  The ls_vuart driver
+		 * (drivers/tty/serial/ls_vuart.c) parses only reg index 0.
+		 * mboxes: chan1, tx 8B×3, rx 8B×3 (item_size 8 heartbeat).
+		 */
+		vuart1: vuart@b0800030 {
+			compatible = "linkedsemi,ls-vuart";
+			reg = <0x0 0xb0800030 0x0 0x48>;	/* reg#0 host_vuart_fifo (PLACEHOLDER; independent of mbox data FIFOs, see above) */
+			mboxes = <&mailbox 1 8 3 8 3>;	/* chan1, tx 8B×3, rx 8B×3 */
+			status = "disabled";
+		};
+
+		/*
+		 * ch3: VWire (multi-group Down-VWire) over mailbox.
+		 * Contract aligned with the E906 reference model (design v8,
+		 * 2026-08-27): the mailbox message is a single-byte
+		 * espi_vwire_msg{vw_idx} where vw_idx = down-VWire Group
+		 * (0/1/2/3/7).  Signal LEVELs are never carried in the
+		 * message; they are always read from the shared sysevent
+		 * SRAM mirror (Region D @ 0xb0800850).
+		 *
+		 * Plan B -- SRAM mirror (replaces direct eSPI domain access):
+		 * The original sysevent-base 0x40045ff8 is the E906 view;
+		 * C908 access to that address was unconfirmed.  Region D
+		 * in the mailbox shared SRAM serves as a C908-accessible
+		 * mirror.  E906 firmware writes sysevent data here with a
+		 * sequence counter protocol (see ls-mbox-vw.c).
+		 *
+		 * SRAM Region D layout (48 bytes @ 0xb0800850):
+		 *   +0x00  seq_begin  (u32)  E906 increments before write
+		 *   +0x04  s02_ms     (u8)   Group 0/2 sysevent
+		 *   +0x05  s03_ms     (u8)   Group 1/3 sysevent (PLTRST#)
+		 *   +0x06  s04_sm     (u8)   reserved
+		 *   +0x07  s05_sm     (u8)   reserved
+		 *   +0x08  s06_sm     (u8)   reserved
+		 *   +0x09  s07_ms     (u8)   Group 7 sysevent
+		 *   +0x0A  reserved   (u8 x 22)
+		 *   +0x20  seq_end    (u32)  E906 increments after write
+		 *   +0x24  reserved   (u8 x 4)
+		 *   total 40 bytes (0x28), mapped region 48 bytes (0x30)
+		 *
+		 * Sequence counter protocol:
+		 *   E906 write: seq_begin++ -> write 6 bytes -> seq_end = seq_begin
+		 *   C908 read:  retry until seq_begin == seq_end && even
+		 *
+		 * The driver (ls-mbox-vw.c) registers all Down-VWire signals
+		 * as a gpio_chip and provides both a generic IOCTL chardev
+		 * (/dev/ls-mbox-vw) and a PLTRST#-only backward-compatible
+		 * chardev (/dev/ls-mbox-pltrst).
+		 *
+		 *   - reg#0 = SRAM Region D (sysevent mirror), 48 bytes.
+		 *   - mboxes chan3 = Linux-side channel for VW events.
+		 *   - sysevent-base: C908-view SRAM Region D base address.
+		 *   - sysevent-size: size of the SRAM mirror region (48 bytes).
+		 *   - vw-group = <3>: default down-VWire Group (PLTRST#);
+		 *     informational -- the driver monitors all Groups in its
+		 *     built-in signal table.
+		 *   - status = "disabled": hold until E906 firmware implements
+		 *     SRAM Region D writes.  Board DTS overrides to "okay".
+		 */
+		vw0: vw@b0800850 {
+			compatible = "linkedsemi,ls-mbox-vw";
+			reg = <0x0 0xb0800850 0x0 0x30>;	/* SRAM Region D: sysevent mirror, 48 bytes */
+			mboxes = <&mailbox 3 4 3 4 3>;	/* chan3, tx 4B×3, rx 4B×3 */
+			sysevent-base = <0xb0800850>;	/* C908-view: SRAM Region D base (Plan B: SRAM mirror) */
+			sysevent-size = <0x30>;		/* 48 bytes: seq_begin(4) + sysevent(6+22) + seq_end(4) + reserved(4) */
+			vw-group = <3>;		/* default down-VWire Group 3 = PLTRST# (informational) */
+			status = "disabled";	/* requires E906 firmware SRAM Region D write support */
+		};
+
+		/* MMBI platform node (mailbox ch2 client) */
+		mmbi0: mmbi {
+			compatible = "linkedsemi,ls-espi-mmbi";
+			memory-region = <&mmbi_shared>;
+			mboxes = <&mailbox 2 8 16 8 16>;	/* ch2, tx 8B×16, rx 8B×16 */
+			protocols = <1 2 3 4 5>;	/* ipmi, seamless, ras_offload, mctp, vendor */
+			host-map-addr = <0x0 0xd4e00000>;
+			instances = <0x1>;
+			status = "disabled";
+		};
+
+		/* Port80 platform node (mailbox ch5 client).
+		 * Ring buffer lives inside shared SRAM (mbox_shared) at Region E,
+		 * placeholder offset 0x1000 pending E906 firmware confirmation. */
+		pcc0: pcc@b0801000 {
+			compatible = "linkedsemi,ls-pcc";
+			reg = <0x0 0xb0801000 0x0 0x1000>;	/* Port80 ring in SRAM (placeholder offset) */
+			mboxes = <&mailbox 5 8 16 8 16>;	/* ch5, tx 8B×16, rx 8B×16 */
+			record-mode = "2b";	/* "2b" = AMD PCC, "1b" = Intel LPC-Snoop */
+			pcc-ports = <0x80 0x84>;
+			status = "disabled";
+		};
+	};
+};

@@ -1,0 +1,1021 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/* Copyright (c) 2026 Linkedsemi */
+/* LS2010 SoC-level hardware description — shared by U-Boot and Kernel.
+ *
+ * Board-level DTS files (ls2010-default-uboot.dts / ls2010-default-linux.dts /
+ * ls2010-default-protium-uboot.dts / ls2010-default-protium-linux.dts)
+ * include this file and add their own /chosen node for bootargs, stdout-path,
+ * initrd, etc.
+ */
+
+#include <dt-bindings/i2c/i2c.h>
+#include "ls2010-clocks.dtsi"
+#include "ls2010-mailbox.dtsi"
+#include "ls2010-pinctrl.dtsi"
+
+/ {
+	compatible = "linkedsemi,ls2010";
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	aliases {
+		rtc0 = &rtc0;
+		i2c5 = &i2c5;
+	};
+
+	memory@c0000000 {
+		device_type = "memory";
+		reg = <0x0 0xc0000000 0x1 0x00000000>;
+	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		vga0: vga@d0000000 {
+			reg = <0x0 0xd0000000 0x0 0x1000000>;
+			no-map;
+		};
+		vbios0: vbios@d1000000 {
+			reg = <0x0 0xd1000000 0x0 0x10000>;
+			no-map;
+		};
+	};
+
+	cpus: cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		timebase-frequency = <37037000>;
+
+		c908_0: cpu@0 {
+			compatible = "thead,c908", "riscv";
+			device_type = "cpu";
+			riscv,isa = "rv64imafdcv_zicbom_zicbop_zicboz_zihintpause_zfh_zba_zbb_zbc_zbs_sscofpmf_svinval_svnapot_svpbmt_xtheadc_xtheadvdot";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i","m","a","f","d","c","v","zicbom","zicbop","zicboz","zihintpause",
+				"zfh","zba","zbb","zbc","zbs","sscofpmf","svinval","svnapot","svpbmt","xtheadc","xtheadvdot";
+			riscv,cbom-block-size = <64>;
+			riscv,cboz-block-size = <64>;
+			reg = <0>;
+			i-cache-block-size = <64>;
+			i-cache-size = <32768>;
+			i-cache-sets = <128>;
+			d-cache-block-size = <64>;
+			d-cache-size = <32768>;
+			d-cache-sets = <128>;
+			next-level-cache = <&l2_cache>;
+			mmu-type = "riscv,sv39";
+
+			cpu0_intc: interrupt-controller {
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+				#interrupt-cells = <1>;
+				#address-cells = <0>;
+			};
+		};
+
+		c908_1: cpu@1 {
+			compatible = "thead,c908", "riscv";
+			device_type = "cpu";
+			riscv,isa = "rv64imafdcv_zicbom_zicbop_zicboz_zihintpause_zfh_zba_zbb_zbc_zbs_sscofpmf_svinval_svnapot_svpbmt_xtheadc_xtheadvdot";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i","m","a","f","d","c","v","zicbom","zicbop","zicboz","zihintpause",
+				"zfh","zba","zbb","zbc","zbs","sscofpmf","svinval","svnapot","svpbmt","xtheadc","xtheadvdot";
+			riscv,cbom-block-size = <64>;
+			riscv,cboz-block-size = <64>;
+			reg = <1>;
+			i-cache-block-size = <64>;
+			i-cache-size = <32768>;
+			i-cache-sets = <128>;
+			d-cache-block-size = <64>;
+			d-cache-size = <32768>;
+			d-cache-sets = <128>;
+			next-level-cache = <&l2_cache>;
+			mmu-type = "riscv,sv39";
+
+			cpu1_intc: interrupt-controller {
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+				#interrupt-cells = <1>;
+				#address-cells = <0>;
+			};
+		};
+
+		c908_2: cpu@2 {
+			compatible = "thead,c908", "riscv";
+			device_type = "cpu";
+			riscv,isa = "rv64imafdcv_zicbom_zicbop_zicboz_zihintpause_zfh_zba_zbb_zbc_zbs_sscofpmf_svinval_svnapot_svpbmt_xtheadc_xtheadvdot";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i","m","a","f","d","c","v","zicbom","zicbop","zicboz","zihintpause",
+				"zfh","zba","zbb","zbc","zbs","sscofpmf","svinval","svnapot","svpbmt","xtheadc","xtheadvdot";
+			riscv,cbom-block-size = <64>;
+			riscv,cboz-block-size = <64>;
+			reg = <2>;
+			i-cache-block-size = <64>;
+			i-cache-size = <32768>;
+			i-cache-sets = <128>;
+			d-cache-block-size = <64>;
+			d-cache-size = <32768>;
+			d-cache-sets = <128>;
+			next-level-cache = <&l2_cache>;
+			mmu-type = "riscv,sv39";
+
+			cpu2_intc: interrupt-controller {
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+				#interrupt-cells = <1>;
+				#address-cells = <0>;
+			};
+		};
+
+		c908_3: cpu@3 {
+			compatible = "thead,c908", "riscv";
+			device_type = "cpu";
+			riscv,isa = "rv64imafdcv_zicbom_zicbop_zicboz_zihintpause_zfh_zba_zbb_zbc_zbs_sscofpmf_svinval_svnapot_svpbmt_xtheadc_xtheadvdot";
+			riscv,isa-base = "rv64i";
+			riscv,isa-extensions = "i","m","a","f","d","c","v","zicbom","zicbop","zicboz","zihintpause",
+				"zfh","zba","zbb","zbc","zbs","sscofpmf","svinval","svnapot","svpbmt","xtheadc","xtheadvdot";
+			riscv,cbom-block-size = <64>;
+			riscv,cboz-block-size = <64>;
+			reg = <3>;
+			i-cache-block-size = <64>;
+			i-cache-size = <32768>;
+			i-cache-sets = <128>;
+			d-cache-block-size = <64>;
+			d-cache-size = <32768>;
+			d-cache-sets = <128>;
+			next-level-cache = <&l2_cache>;
+			mmu-type = "riscv,sv39";
+
+			cpu3_intc: interrupt-controller {
+				compatible = "riscv,cpu-intc";
+				interrupt-controller;
+				#interrupt-cells = <1>;
+				#address-cells = <0>;
+			};
+		};
+
+		l2_cache: l2-cache {
+			compatible = "cache";
+			cache-block-size = <64>;
+			cache-level = <2>;
+			cache-size = <524288>;
+			cache-sets = <512>;
+			cache-unified;
+		};
+	};
+
+	emmc_clk: emmc-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <200000000>;
+	};
+
+	spi_clk: spi-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <50000000>;
+		/* 50 MHz: conservative estimate; reconcile with actual clock tree once confirmed. */
+	};
+
+	i3c_clk: i3c-clock {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <12500000>;
+	};
+
+	soc {
+		compatible = "simple-bus";
+		interrupt-parent = <&plic>;
+		#address-cells = <2>;
+		#size-cells = <2>;
+		dma-noncoherent;
+		ranges;
+
+		plic: interrupt-controller@4000000000 {
+			compatible = "thead,c900-plic";
+			reg = <0x40 0x00000000 0x0 0x04000000>;
+			interrupts-extended = <&cpu0_intc 0xffffffff>, <&cpu0_intc 9>,
+					      <&cpu1_intc 0xffffffff>, <&cpu1_intc 9>,
+					      <&cpu2_intc 0xffffffff>, <&cpu2_intc 9>,
+					      <&cpu3_intc 0xffffffff>, <&cpu3_intc 9>;
+			interrupt-controller;
+			#address-cells = <0>;
+			#interrupt-cells = <2>;
+			riscv,ndev = <240>;
+			riscv,max-priority = <7>;
+		};
+
+		clint: clint@4004000000 {
+			compatible = "thead,c900-clint";
+			reg = <0x40 0x04000000 0x0 0x00010000>;
+			interrupts-extended = <&cpu0_intc 3>, <&cpu0_intc 7>,
+					      <&cpu1_intc 3>, <&cpu1_intc 7>,
+					      <&cpu2_intc 3>, <&cpu2_intc 7>,
+					      <&cpu3_intc 3>, <&cpu3_intc 7>;
+		};
+
+		uart12: serial@9600e000 {
+			compatible = "snps,dw-apb-uart";
+			reg = <0x00 0x9600e000 0x0 0x1000>;
+			interrupts = <71 4>;
+			clock-frequency = <37037000>;
+			current-speed = <1152000>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			status = "disabled";
+		};
+
+		gpio0: gpio@a0003000 {
+			compatible = "linkedsemi,ls2010-gpio";
+			reg = <0x0 0xa0003000 0x0 0x1000>;
+			interrupt-controller;
+			interrupts = <170 4>, <171 4>;
+			interrupt-names = "intr0", "intr1";
+			gpio-controller;
+			#gpio-cells = <2>;
+			#interrupt-cells = <2>;
+			ngpios = <254>;
+			status = "disabled";
+		};
+
+		periph_sys: syscon@96000000 {
+			compatible = "syscon";
+			reg = <0x0 0x96000000 0x0 0x1000>;
+		};
+
+		cpu0_sys: syscon@01300000 {
+			compatible = "syscon";
+			reg = <0x0 0x01300000 0x0 0x1000>;
+		};
+
+		rtc0: rtc@42126000 {
+			compatible = "linkedsemi,ls-rtc";
+			reg = <0x0 0x42126000 0x0 0x100>;
+			interrupts = <116 4>;
+			linkedsemi,syscfg = <&cpu0_sys>;
+			status = "disabled";
+		};
+
+		i2c0: i2c@96002000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96002000 0x0 0x1000>;
+			interrupts = <83 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <5>;
+			linkedsemi,reset-clr-bit = <5>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c0_default>;
+			status = "disabled";
+			mctp-controller;
+
+			eeprom@50 {
+				compatible = "atmel,24c256";
+				reg = <0x50>;
+				pagesize = <64>;
+			};
+
+			ipmb@10 {
+				compatible = "ipmb-dev";
+				reg = <0x10>;
+				i2c-protocol;
+			};
+
+			ipmi-ipmb@40 {
+				compatible = "ipmi-ipmb";
+				device_type = "ipmi";
+				reg = <0x40>;
+				bmcaddr = /bits/ 8 <0x20>;
+				retry-time = <250>;
+				max-retries = <1>;
+			};
+
+			mctp@30 {
+				compatible = "mctp-i2c-controller";
+				reg = <(0x30 | I2C_OWN_SLAVE_ADDRESS)>;
+			};
+		};
+
+		i2c1: i2c@96003000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96003000 0x0 0x1000>;
+			interrupts = <82 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <6>;
+			linkedsemi,reset-clr-bit = <6>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c1_default>;
+			status = "disabled";
+		};
+
+		i2c2: i2c@96004000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96004000 0x0 0x1000>;
+			interrupts = <81 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <7>;
+			linkedsemi,reset-clr-bit = <7>;
+			status = "disabled";
+		};
+
+		i2c3: i2c@96005000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96005000 0x0 0x1000>;
+			interrupts = <80 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <8>;
+			linkedsemi,reset-clr-bit = <8>;
+			status = "disabled";
+		};
+
+		i2c4: i2c@96006000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96006000 0x0 0x1000>;
+			interrupts = <79 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <9>;
+			linkedsemi,reset-clr-bit = <9>;
+			status = "disabled";
+		};
+
+		i2c5: i2c@96007000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96007000 0x0 0x1000>;
+			interrupts = <78 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <10>;
+			linkedsemi,reset-clr-bit = <10>;
+			status = "disabled";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			/* PSU1 PMBus (MISC CONN: 0xB0 → 7-bit 0x58, Page B) */
+			psu1_pmbus_b: pmbus@58 { compatible = "pmbus"; reg = <0x58>; };
+			/* PSU2 PMBus (MISC CONN: 0xB2 → 7-bit 0x59, Page B) */
+			psu2_pmbus_b: pmbus@59 { compatible = "pmbus"; reg = <0x59>; };
+			/* PSU3 PMBus (MISC CONN: 0xB4 → 7-bit 0x5A, Page B) */
+			psu3_pmbus_b: pmbus@5a { compatible = "pmbus"; reg = <0x5a>; };
+			/* PSU4 PMBus (MISC CONN: 0xB6 → 7-bit 0x5B, Page B) */
+			psu4_pmbus_b: pmbus@5b { compatible = "pmbus"; reg = <0x5b>; };
+		};
+
+		i2c6: i2c@96008000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96008000 0x0 0x1000>;
+			interrupts = <77 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <11>;
+			linkedsemi,reset-clr-bit = <11>;
+			status = "disabled";
+		};
+
+		i2c7: i2c@96009000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x96009000 0x0 0x1000>;
+			interrupts = <76 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <12>;
+			linkedsemi,reset-clr-bit = <12>;
+			status = "disabled";
+		};
+
+		i2c8: i2c@9600a000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x9600a000 0x0 0x1000>;
+			interrupts = <75 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <13>;
+			linkedsemi,reset-clr-bit = <13>;
+			status = "disabled";
+		};
+
+		i2c9: i2c@9600b000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x9600b000 0x0 0x1000>;
+			interrupts = <74 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <14>;
+			linkedsemi,reset-clr-bit = <14>;
+			status = "disabled";
+		};
+
+		i2c10: i2c@9600c000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x9600c000 0x0 0x1000>;
+			interrupts = <73 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <15>;
+			linkedsemi,reset-clr-bit = <15>;
+			status = "disabled";
+		};
+
+		i2c11: i2c@9600d000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x9600d000 0x0 0x1000>;
+			interrupts = <72 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			linkedsemi,reset-syscon = <&periph_sys>;
+			linkedsemi,reset-reg = <0x78>;
+			linkedsemi,reset-clr-reg = <0x7c>;
+			linkedsemi,reset-set-bit = <16>;
+			linkedsemi,reset-clr-bit = <16>;
+			status = "disabled";
+		};
+
+		i2c12: i2c@42008000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x42008000 0x0 0x1000>;
+			interrupts = <41 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			status = "disabled";
+		};
+
+		i2c13: i2c@42009000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x42009000 0x0 0x1000>;
+			interrupts = <40 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			status = "disabled";
+		};
+
+		i2c14: i2c@4200a000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x4200a000 0x0 0x1000>;
+			interrupts = <39 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			status = "disabled";
+		};
+
+		i2c15: i2c@4200b000 {
+			compatible = "linkedsemi,ls2010-i2c";
+			reg = <0x00 0x4200b000 0x0 0x1000>;
+			interrupts = <38 4>;
+			bus-frequency = <400000>;
+			linkedsemi,i2cclk-frequency = <200000000>;
+			status = "disabled";
+		};
+
+		peci0: peci@01302000 {
+			compatible = "linkedsemi,ls2010-peci";
+			reg = <0x0 0x01302000 0x0 0x1000>;
+			interrupts = <18 4>; /* C908 IRQ=18 (TRM p.31) */
+			clocks = <&clk_cpu0 40>; /* LS2010_CLK_CPU0_PECI0_APB */
+			clock-names = "apb";
+			pinctrl-names = "default";
+			pinctrl-0 = <&peci_default>;
+			cmd-timeout-ms = <1000>;
+			status = "disabled";
+		};
+
+		peci1: peci@0130e000 {
+			compatible = "linkedsemi,ls2010-peci";
+			reg = <0x0 0x0130e000 0x0 0x1000>;
+			interrupts = <169 4>; /* C908 IRQ=169 (TRM p.31) */
+			clocks = <&clk_cpu0 41>; /* LS2010_CLK_CPU0_PECI1_APB */
+			clock-names = "apb";
+			pinctrl-names = "default";
+			pinctrl-0 = <&peci_default>;
+			cmd-timeout-ms = <1000>;
+			status = "disabled";
+		};
+
+		i3c0: i3c@01304000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x01304000 0x0 0x1000>;
+			interrupts = <37 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+			mctp-controller;
+		};
+
+		i3c1: i3c@01305000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x01305000 0x0 0x1000>;
+			interrupts = <36 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c2: i3c@01306000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x01306000 0x0 0x1000>;
+			interrupts = <35 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c3: i3c@01307000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x01307000 0x0 0x1000>;
+			interrupts = <34 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c4: i3c@01308000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x01308000 0x0 0x1000>;
+			interrupts = <33 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c5: i3c@01309000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x01309000 0x0 0x1000>;
+			interrupts = <32 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c6: i3c@0130a000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x0130a000 0x0 0x1000>;
+			interrupts = <31 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c7: i3c@0130b000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x0130b000 0x0 0x1000>;
+			interrupts = <30 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c8: i3c@42000000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42000000 0x0 0x1000>;
+			interrupts = <29 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c9: i3c@42001000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42001000 0x0 0x1000>;
+			interrupts = <28 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c10: i3c@42002000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42002000 0x0 0x1000>;
+			interrupts = <27 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c11: i3c@42003000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42003000 0x0 0x1000>;
+			interrupts = <26 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c12: i3c@42004000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42004000 0x0 0x1000>;
+			interrupts = <25 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c13: i3c@42005000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42005000 0x0 0x1000>;
+			interrupts = <24 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c14: i3c@42006000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42006000 0x0 0x1000>;
+			interrupts = <23 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		i3c15: i3c@42007000 {
+			compatible = "snps,dw-i3c-master-1.00a";
+			reg = <0x00 0x42007000 0x0 0x1000>;
+			interrupts = <22 4>;
+			clocks = <&i3c_clk>;
+			clock-names = "core";
+			#address-cells = <3>;
+			#size-cells = <0>;
+			status = "disabled";
+		};
+
+		emmc: mmc@92000000 {
+			compatible = "snps,dwcmshc-sdhci";
+			/* reg window is 16 KiB (0x92000000-0x92003FFF) per LS2010PIX User Manual V0.3, Section 3.1.2 System Address map */
+			reg = <0x00 0x92000000 0x0 0x4000>;
+			interrupts = <60 4>;
+			clocks = <&emmc_clk>;
+			clock-names = "core";
+			bus-width = <8>;
+			non-removable;
+			cap-mmc-highspeed;
+			mmc-hs200-1_8v;
+			max-frequency = <200000000>;
+			status = "disabled";
+		};
+
+		sgmii0: ethernet@65000000 {
+			/* linkedsemi,lsbmc-evk-dwmac first: U-Boot binds its
+			 * DWC EQoS driver on it; the kernel still binds via
+			 * "snps,dwmac" (stmmac).
+			 */
+			compatible = "linkedsemi,lsbmc-evk-dwmac", "snps,dwmac",
+				     "snps,dwmac-5.20";
+			reg = <0x0 0x65000000 0x0 0x10000>;
+			interrupts = <13 4>;
+			interrupt-names = "macirq";
+			phy-mode = "sgmii";
+			rx-fifo-depth = <2048>;
+			tx-fifo-depth = <2048>;
+			snps,ps-speed = <1000>;
+			snps,tso;
+			snps,txpbl = <16>;
+			snps,rxpbl = <16>;
+			status = "disabled";
+
+			snps,mtl-rx-config = <&mtl_rx_setup_1>;
+			snps,mtl-tx-config = <&mtl_tx_setup_1>;
+			snps,axi-config = <&stmmac_axi_config_0>;
+			stmmac_axi_config_0: stmmac-axi-config {
+				snps,wr_osr_lmt = <0x7>;
+				snps,rd_osr_lmt = <0x7>;
+				snps,blen = <0 0 0 0 16 8 4>;
+			};
+			mtl_rx_setup_1: rx-queues-config {
+				snps,rx-queues-to-use = <4>;
+				queue0 {};
+				queue1 {};
+				queue2 {};
+				queue3 {};
+			};
+
+			mtl_tx_setup_1: tx-queues-config {
+				snps,tx-queues-to-use = <4>;
+				queue0 {};
+				queue1 {};
+				queue2 {};
+				queue3 {};
+			};
+			fixed-link {
+				speed = <1000>;
+				full-duplex;
+			};
+		};
+
+		xhci0: usb@94000000 {
+			compatible = "generic-xhci";
+			reg = <0x0 0x94000000 0x0 0x10000>;
+			interrupts = <65 4>;
+			status = "disabled";
+		};
+
+		pipe_syscon: syscon@90928000 {
+			compatible = "syscon";
+			reg = <0x0 0x90928000 0x0 0x1000>;
+		};
+
+		pcie0_ep: pcie-ep@90000000 {
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			compatible = "linkedsemi,ls-pcie-ep","simple-mfd";
+			reg = <0x0 0x90000000 0x0 0x100000>,
+				<0x0 0x90100000 0x0 0x100000>,
+				<0x0 0x90300000 0x0 0x4000>,
+				<0x0 0x90380000 0x0 0x2000>,
+				<0x0 0x70000000 0x0 0x10000000>,
+				<0x0 0x96012000 0x0 0x1000>,
+				<0x0 0x94000000 0x0 0x100000>,
+				<0x0 0x90900000 0x0 0x10000>,
+				<0x0 0x6a8 0x0 0x480>,
+				<0x0 0xba0 0x0 0x6c>,
+				<0x0 0xc90 0x0 0x3c>,
+				<0x0 0xb0000018 0x0 0x8>,
+				<0x0 0xb0000038 0x0 0x8>,
+				<0x40000000 0x0 0x100 0x0>;
+			reg-names = "dbi","dbi2","atu","dma","addr_space","xhci_vhub",
+				"xhci_hc","vpn","pipe_cfg0","pipe_cfg1","pipe_cfg2",
+				"xhci_msi","vga_msi","xhci_hc_range";
+			memory-region = <&vga0>, <&vbios0>;
+			memory-region-names = "vga0", "vbios0";
+			interrupts = <198 4>,
+						<197 4>,
+						<196 4>,
+						<195 4>,
+						<194 4>,
+						<192 4>,
+						<191 4>;
+			interrupt-names = "dma","smlh_link","ip","radm_to","aux","msg","misc";
+			pipesys-cfg = <&pipe_syscon>;
+			max-functions = /bits/ 8 <8>;
+			num-lanes = <1>;
+			max-link-speed = <1>;
+			status = "disabled";
+			mctp_pcie0: mctp-pcie@0 {
+				compatible = "linkedsemi,ls-pcie-mctp";
+				reg = <0x0 0xbac 0x0 0x50>,
+					<0x0 0xb44 0x0 0x8>,
+					<0x0 0xbfc 0x0 0x10>;
+				reg-names = "rx", "tx","bdf";
+				interrupts = <193 4>;
+				status = "disabled";
+			};
+
+			/*
+			 * Software xHCI (virtual USB) engine platform device,
+			 * paired with the pci-epf-xhci "xhci_vhub" endpoint
+			 * function.  The register window is the EPC node's
+			 * "xhci_vhub" resource (virtual_usb0 @ 0x96012000, 4K,
+			 * LS2010PIX memory map), so this node intentionally
+			 * declares no reg: the driver maps the parent's window
+			 * through platform_get_resource_byname().  interrupts =
+			 * periph_virtual_usb0_intr (manual IRQ table; number
+			 * follows the first column used by all existing nodes).
+			 * Driver: drivers/usb/gadget/udc/ls-pcie-vusb.c
+			 */
+			ls_pcie_vusb: ls-pcie-vusb {
+				compatible = "linkedsemi,ls-pcie-vusb";
+				interrupts = <179 4>;
+				/* Disabled by default (Kconfig default off);
+				 * board dts overrides to "okay" to enable. */
+				status = "disabled";
+
+				/*
+				 * Virtual USB hub emulated on the software xHCI
+				 * engine above: presents a USB 2.0 hub (5
+				 * downstream ports) to the PCIe host and exposes
+				 * one UDC per port for BMC-side gadget drivers.
+				 * Child of ls-pcie-vusb on purpose: vhub probe
+				 * takes its engine from dev_get_drvdata(parent),
+				 * which the vusb driver sets before it populates
+				 * DT children (of_platform_populate).  No reg, no
+				 * interrupt: the hub rides the vusb DMA path.
+				 * Driver: drivers/usb/gadget/udc/vhub.c
+				 */
+				ls_pcie_vhub: ls-pcie-vhub {
+					compatible = "linkedsemi,ls-pcie-vhub";
+					status = "disabled";
+				};
+			};
+		};
+
+		fwqspi: spi@61000000 {
+			compatible = "snps,dwc-ssi-1.01a";
+			reg = <0x0 0x61000000 0x0 0x10000>;
+			interrupts = <58 4>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num-cs = <3>;
+			linkedsemi,internal-dma;
+			clocks = <&spi_clk>;
+			/* U-Boot dw_spi reads spi-max-frequency from this controller
+			 * node and defaults to 500KHz when absent
+			 * (drivers/spi/designware_spi.c), so spi-max-frequency must
+			 * live here.  Cap the fwqspi bus at 12.5MHz.
+			 */
+			spi-max-frequency = <12500000>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&fwspi_pins>;
+			status = "disabled";
+		};
+
+		spi0: spi@62000000 {
+			compatible = "snps,dw-apb-ssi";
+			reg = <0x0 0x62000000 0x0 0x10000>;
+			interrupts = <5 4>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num-cs = <3>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi0_default>;
+			clocks = <&spi_clk>;
+			status = "disabled";
+
+			spidev@0 {
+				compatible = "rohm,dh2228fv";
+				reg = <0>;
+				spi-max-frequency = <50000000>;
+			};
+		};
+
+		spi1: spi@63000000 {
+			compatible = "snps,dw-apb-ssi";
+			reg = <0x0 0x63000000 0x0 0x10000>;
+			interrupts = <4 4>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num-cs = <3>;
+			linkedsemi,internal-dma;
+			clocks = <&spi_clk>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi1_default>;
+			status = "disabled";
+		};
+
+		spi2: spi@64000000 {
+			compatible = "snps,dw-apb-ssi";
+			reg = <0x0 0x64000000 0x0 0x10000>;
+			interrupts = <3 4>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			num-cs = <2>;
+			clocks = <&spi_clk>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi2_default>;
+			status = "disabled";
+
+			spidev@0 {
+				compatible = "rohm,dh2228fv";
+				reg = <0>;
+				spi-max-frequency = <50000000>;
+			};
+		};
+
+		ana_cpu_sys: syscon@a0001000 {
+			compatible = "syscon";
+			reg = <0x0 0xa0001000 0x0 0x100>;
+			#address-cells = <1>;
+		};
+
+		adc0: adc@6050b000 {
+			compatible = "linkedsemi,ls2010-adc12b";
+			reg = <0x0 0x6050b000 0x0 0x100>;
+			interrupts = <155 4>;
+			#io-channel-cells = <1>;
+			linkedsemi,ana-syscon = <&ana_cpu_sys 0x1>;
+			linkedsemi,vref-mv = <2500>;
+			linkedsemi,adc-clk-div = <36>;
+			status = "disabled";
+		};
+
+		adc1: adc@6050c000 {
+			compatible = "linkedsemi,ls2010-adc12b";
+			reg = <0x0 0x6050c000 0x0 0x100>;
+			interrupts = <182 4>;
+			#io-channel-cells = <1>;
+			linkedsemi,ana-syscon = <&ana_cpu_sys 0x2>;
+			linkedsemi,vref-mv = <2500>;
+			linkedsemi,adc-clk-div = <36>;
+			status = "disabled";
+		};
+
+		adc2: adc@6050d000 {
+			compatible = "linkedsemi,ls2010-adc12b";
+			reg = <0x0 0x6050d000 0x0 0x100>;
+			interrupts = <196 4>;
+			#io-channel-cells = <1>;
+			linkedsemi,ana-syscon = <&ana_cpu_sys 0x4>;
+			linkedsemi,vref-mv = <2500>;
+			linkedsemi,adc-clk-div = <36>;
+			status = "disabled";
+		};
+
+		ltpi0: ltpi@42106000 {
+			compatible = "linkedsemi,ls2010-ltpi";
+			reg = <0x0 0x42106000 0x0 0x1000>;
+			reg-names = "base";
+			clocks = <&clk_cpu0 27>,	/* LTPI0_SCM */
+				 <&clk_cpu0 4>;		/* LVDS0_200M */
+			clock-names = "ahb", "phy";
+			interrupts = <137 4>;
+			status = "disabled";
+		};
+
+		ltpi1: ltpi@42107000 {
+			compatible = "linkedsemi,ls2010-ltpi";
+			reg = <0x0 0x42107000 0x0 0x1000>;
+			reg-names = "base";
+			clocks = <&clk_cpu0 29>,	/* LTPI1_SCM */
+				 <&clk_cpu0 5>;		/* LVDS1_200M */
+			clock-names = "ahb", "phy";
+			interrupts = <135 4>;
+			status = "disabled";
+		};
+
+	};
+
+	ltpi0_bus: ltpi0_bus@2000000 {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		reg = <0x0 0x02000000 0x0 0x20000000>;
+		ranges;
+		status = "disabled";
+	};
+
+	ltpi1_bus: ltpi1_bus@22000000 {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		reg = <0x0 0x22000000 0x0 0x20000000>;
+		ranges;
+		status = "disabled";
+	};
+};

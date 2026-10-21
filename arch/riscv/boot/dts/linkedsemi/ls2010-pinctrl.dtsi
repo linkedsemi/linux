@@ -1,0 +1,764 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/* Copyright (c) 2026 Linkedsemi */
+/* LS2010 pin controller node — split out of ls2010-common.dtsi so the
+ * SoC pin mux (linkedsemi,ls2010-pinctrl, driving the <&pinctrl> pinctrl-*
+ * consumers of the i2c / spi / uart clients) lives in one self-contained
+ * file, matching the upstream Linux per-SoC pinctrl-dtsi convention
+ * (e.g. rockchip rk3568-pinctrl.dtsi, NXP i.MX iomuxc).  Included by
+ * ls2010-common.dtsi; the /soc block merges with the one in
+ * ls2010-common.dtsi, so the pinctrl node stays a child of the soc
+ * simple-bus and its label remains visible to consumers in the same
+ * compilation unit.
+ */
+
+/ {
+	soc {
+		pinctrl: pinctrl@a0003000 {
+			compatible = "linkedsemi,ls2010-pinctrl";
+			reg = <0x0 0xa0003000 0x0 0xc00>;
+			#pinctrl-cells = <0>;
+
+			/*
+			 * Mux-only states: declare function + groups only.
+			 * Pins 5..12 (GPV0-3 / GPN0-2 / GPBB6) have no
+			 * confirmed pad-register mapping yet (manual 1.4.2 Pin
+			 * Description is TBD), so pinconf properties
+			 * (bias-pull-up/down, bias-disable, input-enable,
+			 * input-schmitt, drive-strength, ...) must not be
+			 * added to these states: applying them fails with
+			 * -ENOTSUPP and breaks the consumer probe
+			 * (i2c0@96002000 / i2c1@96003000 / spi0@62000000).
+			 */
+			/*
+			 * First-batch bound states.  Each state names a group /
+			 * function from the pinctrl driver data table
+			 * (i2c0_scl & i2c0_sda belong to function "i2c0",
+			 * spi0_* to "spi0").
+			 */
+			i2c0_default: i2c0-default-state {
+				function = "i2c0";
+				groups = "i2c0_scl", "i2c0_sda";
+			};
+
+			i2c1_default: i2c1-default-state {
+				function = "i2c1";
+				groups = "i2c1_scl", "i2c1_sda";
+			};
+
+			spi0_default: spi0-default-state {
+				function = "spi0";
+				groups = "spi0_sck", "spi0_mosi",
+					  "spi0_miso", "spi0_cs0";
+			};
+
+			/*
+			 * FWSPI (fwqspi, at 0x61000000) mux-only state.  Group /
+			 * function names are uppercase "FWSPI" — matching the
+			 * pinctrl driver data table (ls2010_functions[]), which the
+			 * table declares for the FWSPI group used by the U-Boot
+			 * designware_spi fwqspi probe path.
+			 */
+			fwspi_pins: fwspi-default-state {
+				function = "FWSPI";
+				groups = "FWSPI";
+			};
+
+			/* ============================================================
+			 * JTAG master (3.3V) — DRV-EXISTS
+			 * GPIOQ0-4 (JTAGMS bank), PB4SCUD12RNC_X pad, DVDD18_BMC.
+			 * Two functions: gpio (func1) and mjtag (func2).
+			 * func3-5 have no jtagms registers.
+			 * ============================================================ */
+			jtagms_gpio_default: jtagms-gpio-default-state {
+				function = "gpio";
+				groups = "jtagms_gpio";
+			};
+
+			mjtag_default: mjtag-default-state {
+				function = "mjtag";
+				groups = "jtagms_mjtag";
+			};
+
+			/* ============================================================
+			 * I2C2-3: GPIOV4-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_SMB0)
+			 * DRV-MISSING
+			 * ============================================================ */
+			i2c2_default: i2c2-default-state {
+				function = "i2c2";
+				groups = "i2c2_scl", "i2c2_sda";
+			};
+
+			i2c3_default: i2c3-default-state {
+				function = "i2c3";
+				groups = "i2c3_scl", "i2c3_sda";
+			};
+
+			/* ============================================================
+			 * I2C4-7: GPIOW0-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_SMB1)
+			 * DRV-MISSING
+			 * ============================================================ */
+			i2c4_default: i2c4-default-state {
+				function = "i2c4";
+				groups = "i2c4_scl", "i2c4_sda";
+			};
+
+			i2c5_default: i2c5-default-state {
+				function = "i2c5";
+				groups = "i2c5_scl", "i2c5_sda";
+			};
+
+			i2c6_default: i2c6-default-state {
+				function = "i2c6";
+				groups = "i2c6_scl", "i2c6_sda";
+			};
+
+			i2c7_default: i2c7-default-state {
+				function = "i2c7";
+				groups = "i2c7_scl", "i2c7_sda";
+			};
+
+			/* ============================================================
+			 * I2C8-11: GPIOX0-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_BMC)
+			 * DRV-MISSING
+			 * ============================================================ */
+			i2c8_default: i2c8-default-state {
+				function = "i2c8";
+				groups = "i2c8_scl", "i2c8_sda";
+			};
+
+			i2c9_default: i2c9-default-state {
+				function = "i2c9";
+				groups = "i2c9_scl", "i2c9_sda";
+			};
+
+			i2c10_default: i2c10-default-state {
+				function = "i2c10";
+				groups = "i2c10_scl", "i2c10_sda";
+			};
+
+			i2c11_default: i2c11-default-state {
+				function = "i2c11";
+				groups = "i2c11_scl", "i2c11_sda";
+			};
+
+			/* ============================================================
+			 * I2C12-15: GPIOI0-7 (PBCSUD16_WDDNW_3V_X, DVDD33_HVI3C0)
+			 * DRV-MISSING
+			 * Shares GPIOI0-7 with I3C12-15 via different funcN.
+			 * ============================================================ */
+			i2c12_default: i2c12-default-state {
+				function = "i2c12";
+				groups = "i2c12_scl", "i2c12_sda";
+			};
+
+			i2c13_default: i2c13-default-state {
+				function = "i2c13";
+				groups = "i2c13_scl", "i2c13_sda";
+			};
+
+			i2c14_default: i2c14-default-state {
+				function = "i2c14";
+				groups = "i2c14_scl", "i2c14_sda";
+			};
+
+			i2c15_default: i2c15-default-state {
+				function = "i2c15";
+				groups = "i2c15_scl", "i2c15_sda";
+			};
+
+			/* ============================================================
+			 * I3C HVI3C0-3: GPIOL0-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_HVI3C1)
+			 * DRV-MISSING
+			 * High-voltage I3C channels.
+			 * ============================================================ */
+			i3c_hv0_default: i3c-hv0-default-state {
+				function = "i3c_hv0";
+				groups = "i3c_hv0_scl", "i3c_hv0_sda";
+			};
+
+			i3c_hv1_default: i3c-hv1-default-state {
+				function = "i3c_hv1";
+				groups = "i3c_hv1_scl", "i3c_hv1_sda";
+			};
+
+			i3c_hv2_default: i3c-hv2-default-state {
+				function = "i3c_hv2";
+				groups = "i3c_hv2_scl", "i3c_hv2_sda";
+			};
+
+			i3c_hv3_default: i3c-hv3-default-state {
+				function = "i3c_hv3";
+				groups = "i3c_hv3_scl", "i3c_hv3_sda";
+			};
+
+			/* ============================================================
+			 * I3C4-11: GPIOJ/K (rpt_gpio_lvi3c, DVDD10_LVI3C0/1, 1.0V only)
+			 * DRV-MISSING
+			 * Low-voltage I3C; GPIOJ/K are ODE-capable (unique among all
+			 * pad types).  These pins are triple-shared with UART crossbar
+			 * pads (pad_uart0-11) and I3C via different funcN.
+			 * ============================================================ */
+			i3c4_default: i3c4-default-state {
+				function = "i3c4";
+				groups = "i3c4_scl", "i3c4_sda";
+			};
+
+			i3c5_default: i3c5-default-state {
+				function = "i3c5";
+				groups = "i3c5_scl", "i3c5_sda";
+			};
+
+			i3c6_default: i3c6-default-state {
+				function = "i3c6";
+				groups = "i3c6_scl", "i3c6_sda";
+			};
+
+			i3c7_default: i3c7-default-state {
+				function = "i3c7";
+				groups = "i3c7_scl", "i3c7_sda";
+			};
+
+			i3c8_default: i3c8-default-state {
+				function = "i3c8";
+				groups = "i3c8_scl", "i3c8_sda";
+			};
+
+			i3c9_default: i3c9-default-state {
+				function = "i3c9";
+				groups = "i3c9_scl", "i3c9_sda";
+			};
+
+			i3c10_default: i3c10-default-state {
+				function = "i3c10";
+				groups = "i3c10_scl", "i3c10_sda";
+			};
+
+			i3c11_default: i3c11-default-state {
+				function = "i3c11";
+				groups = "i3c11_scl", "i3c11_sda";
+			};
+
+			/* ============================================================
+			 * I3C12-15: GPIOI0-7 (PBCSUD16_WDDNW_3V_X, DVDD33_HVI3C0)
+			 * DRV-MISSING
+			 * Shares GPIOI0-7 with I2C12-15 via different funcN.
+			 * ============================================================ */
+			i3c12_default: i3c12-default-state {
+				function = "i3c12";
+				groups = "i3c12_scl", "i3c12_sda";
+			};
+
+			i3c13_default: i3c13-default-state {
+				function = "i3c13";
+				groups = "i3c13_scl", "i3c13_sda";
+			};
+
+			i3c14_default: i3c14-default-state {
+				function = "i3c14";
+				groups = "i3c14_scl", "i3c14_sda";
+			};
+
+			i3c15_default: i3c15-default-state {
+				function = "i3c15";
+				groups = "i3c15_scl", "i3c15_sda";
+			};
+
+			/* ============================================================
+			 * UART crossbar: 16 IP UART channels x 14 physical pads.
+			 * DRV-EXISTS.
+			 * GPIOJ/K (rpt_gpio_lvi3c, DVDD10, 1.0V only).
+			 *
+			 * The driver registers 14 pad direction groups
+			 * (pad_uart0-12, pad_uart30, pad_uart31) and 16 ip_uartN
+			 * functions.  The crossbar (0x530-0x54c) routes any ip_uart
+			 * to any pad.  Each state below picks a DEFAULT pad assignment;
+			 * board DTS can override with alternative pad groups.
+			 *
+			 * ip_uart12 is the console channel (BMCUART) -- the driver
+			 * protects it from re-mux.  No state defined for ip_uart12.
+			 *
+			 * With 16 IP UARTs and only 14 pads, ip_uart14/15 must share
+			 * pads.  Defaults below are placeholders; board DTS MUST
+			 * assign explicit non-conflicting pad groups.
+			 * ============================================================ */
+			ip_uart0_default: ip-uart0-default-state {
+				function = "ip_uart0";
+				groups = "pad_uart0-rx", "pad_uart0-tx";
+			};
+
+			ip_uart1_default: ip-uart1-default-state {
+				function = "ip_uart1";
+				groups = "pad_uart1-rx", "pad_uart1-tx";
+			};
+
+			ip_uart2_default: ip-uart2-default-state {
+				function = "ip_uart2";
+				groups = "pad_uart2-rx", "pad_uart2-tx";
+			};
+
+			ip_uart3_default: ip-uart3-default-state {
+				function = "ip_uart3";
+				groups = "pad_uart30-rx", "pad_uart30-tx";
+			};
+
+			ip_uart4_default: ip-uart4-default-state {
+				function = "ip_uart4";
+				groups = "pad_uart4-rx", "pad_uart4-tx";
+			};
+
+			ip_uart5_default: ip-uart5-default-state {
+				function = "ip_uart5";
+				groups = "pad_uart5-rx", "pad_uart5-tx";
+			};
+
+			ip_uart6_default: ip-uart6-default-state {
+				function = "ip_uart6";
+				groups = "pad_uart6-rx", "pad_uart6-tx";
+			};
+
+			ip_uart7_default: ip-uart7-default-state {
+				function = "ip_uart7";
+				groups = "pad_uart7-rx", "pad_uart7-tx";
+			};
+
+			ip_uart8_default: ip-uart8-default-state {
+				function = "ip_uart8";
+				groups = "pad_uart8-rx", "pad_uart8-tx";
+			};
+
+			ip_uart9_default: ip-uart9-default-state {
+				function = "ip_uart9";
+				groups = "pad_uart9-rx", "pad_uart9-tx";
+			};
+
+			ip_uart10_default: ip-uart10-default-state {
+				function = "ip_uart10";
+				groups = "pad_uart10-rx", "pad_uart10-tx";
+			};
+
+			ip_uart11_default: ip-uart11-default-state {
+				function = "ip_uart11";
+				groups = "pad_uart11-rx", "pad_uart11-tx";
+			};
+
+			/* ip_uart12: console channel -- driver refuses set_mux. */
+
+			ip_uart13_default: ip-uart13-default-state {
+				function = "ip_uart13";
+				groups = "pad_uart31-rx", "pad_uart31-tx";
+			};
+
+			ip_uart14_default: ip-uart14-default-state {
+				function = "ip_uart14";
+				groups = "pad_uart12-rx", "pad_uart12-tx";
+			};
+
+			/*
+			 * ip_uart15: only 14 pads for 16 IP UARTs; this default
+			 * reuses pad_uart2 and WILL conflict with ip_uart2.
+			 * Board DTS must override with a non-conflicting pad.
+			 */
+			ip_uart15_default: ip-uart15-default-state {
+				function = "ip_uart15";
+				groups = "pad_uart2-rx", "pad_uart2-tx";
+			};
+
+			/* ============================================================
+			 * RGMII0: GPIOR0-7 / GPIOS0-5 (PBCSUD16_WDDNW_3V_Y,
+			 *           DVDD33_RGMI0) — DRV-MISSING
+			 * 12 RGMII signal pins + MDC0 + MDIO0 = 14 pins.
+			 * ============================================================ */
+			rgmii0_default: rgmii0-default-state {
+				function = "rgmii0";
+				groups = "rgmii0_rxck", "rgmii0_rxctl",
+					 "rgmii0_rxd0", "rgmii0_rxd1",
+					 "rgmii0_rxd2", "rgmii0_rxd3",
+					 "rgmii0_txck", "rgmii0_txctl",
+					 "rgmii0_txd0", "rgmii0_txd1",
+					 "rgmii0_txd2", "rgmii0_txd3",
+					 "mdc0", "mdio0";
+			};
+
+			/* ============================================================
+			 * RGMII1: GPIOT0-7 / GPIOU0-5 (PBCSUD16_WDDNW_3V_Y,
+			 *           DVDD33_RGMI1) — DRV-MISSING
+			 * 12 RGMII signal pins + MDC1 + MDIO1 = 14 pins.
+			 * Pins also carry SGPM1 and UART TXD3/RXD3 alt functions.
+			 * ============================================================ */
+			rgmii1_default: rgmii1-default-state {
+				function = "rgmii1";
+				groups = "rgmii1_rxck", "rgmii1_rxctl",
+					 "rgmii1_rxd0", "rgmii1_rxd1",
+					 "rgmii1_rxd2", "rgmii1_rxd3",
+					 "rgmii1_txck", "rgmii1_txctl",
+					 "rgmii1_txd0", "rgmii1_txd1",
+					 "rgmii1_txd2", "rgmii1_txd3",
+					 "mdc1", "mdio1";
+			};
+
+			/* ============================================================
+			 * eSPI0: GPIOM0-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_ESPI0)
+			 * DRV-MISSING
+			 * 8 signals: ck, cs#, d0-d3, rst#, alt#.
+			 * ============================================================ */
+			espi0_default: espi0-default-state {
+				function = "espi0";
+				groups = "espi0_ck", "espi0_cs",
+					 "espi0_d0", "espi0_d1",
+					 "espi0_d2", "espi0_d3",
+					 "espi0_rst", "espi0_alt";
+			};
+
+			/* ============================================================
+			 * eMMC: GPIOA / GPIOEE / GPIOFF (PRWHSWCDGSD_H EMMC pad,
+			 *        DVDD33_EMMC) — DRV-MISSING
+			 * cmd + clk + dat0-7 + cdn = 11 groups.
+			 * GPIOA is shared with SD0 via different funcN.
+			 * ============================================================ */
+			emmc_default: emmc-default-state {
+				function = "emmc";
+				groups = "emmc_cmd", "emmc_clk",
+					 "emmc_dat0", "emmc_dat1",
+					 "emmc_dat2", "emmc_dat3",
+					 "emmc_dat4", "emmc_dat5",
+					 "emmc_dat6", "emmc_dat7",
+					 "emmc_cdn";
+			};
+
+			/* ============================================================
+			 * SD0: GPIOA0-7 (PRWHSWCDGSD_H EMMC pad, DVDD33_ESPI1)
+			 * DRV-MISSING
+			 * cmd + clk + dat0-3 + cdn = 7 groups.
+			 * eSPI1 pins reassigned as SD0 on LS2010 (Delta Index 16).
+			 * GPIOA is shared with eMMC via different funcN.
+			 * ============================================================ */
+			sd0_default: sd0-default-state {
+				function = "sd0";
+				groups = "sd0_cmd", "sd0_clk",
+					 "sd0_dat0", "sd0_dat1",
+					 "sd0_dat2", "sd0_dat3",
+					 "sd0_cdn";
+			};
+
+			/* ============================================================
+			 * SPI1: GPIOO0-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_SPI1)
+			 * DRV-MISSING
+			 * Groups limited to the four registered by the Linux
+			 * pinctrl-linkedsemi driver (spi1_sck/mosi/miso/cs0).
+			 * cs1/dq2/dq3/abr/wpn pads have no driver pin group yet
+			 * (quad needs dq2/dq3 later).
+			 * ============================================================ */
+			spi1_default: spi1-default-state {
+				function = "spi1";
+				groups = "spi1_sck", "spi1_mosi",
+					 "spi1_miso", "spi1_cs0";
+			};
+
+			/* ============================================================
+			 * SPI2: GPIOP0-6 (PBCSUD16_WDDNW_3V_Y, DVDD33_SPI2/FSPI)
+			 * DRV-MISSING
+			 * Groups limited to the four registered by the Linux
+			 * pinctrl-linkedsemi driver (spi2_sck/mosi/miso/cs0).
+			 * cs1/dq2/dq3 pads have no driver pin group yet.
+			 * ============================================================ */
+			spi2_default: spi2-default-state {
+				function = "spi2";
+				groups = "spi2_sck", "spi2_mosi",
+					 "spi2_miso", "spi2_cs0";
+			};
+
+			/* ============================================================
+			 * PWM0-7: GPIOD0-7 (PBCSUD16_WDDNW_3V_X, DVDD33_IO1)
+			 * PWM8-15: GPIOG0-7 / GPIOH0-1 (PBCSUD16_WDDNW_3V_X,
+			 *           DVDD33_IO2)
+			 * DRV-MISSING
+			 * Each PWM is a single pin.  PWM8-15 share pins with
+			 * UART TXD/RXD, WDTRST0-3, I2C12-15 (SM1), etc.
+			 * ============================================================ */
+			pwm0_default: pwm0-default-state {
+				function = "pwm0";
+				groups = "pwm0";
+			};
+
+			pwm1_default: pwm1-default-state {
+				function = "pwm1";
+				groups = "pwm1";
+			};
+
+			pwm2_default: pwm2-default-state {
+				function = "pwm2";
+				groups = "pwm2";
+			};
+
+			pwm3_default: pwm3-default-state {
+				function = "pwm3";
+				groups = "pwm3";
+			};
+
+			pwm4_default: pwm4-default-state {
+				function = "pwm4";
+				groups = "pwm4";
+			};
+
+			pwm5_default: pwm5-default-state {
+				function = "pwm5";
+				groups = "pwm5";
+			};
+
+			pwm6_default: pwm6-default-state {
+				function = "pwm6";
+				groups = "pwm6";
+			};
+
+			pwm7_default: pwm7-default-state {
+				function = "pwm7";
+				groups = "pwm7";
+			};
+
+			pwm8_default: pwm8-default-state {
+				function = "pwm8";
+				groups = "pwm8";
+			};
+
+			pwm9_default: pwm9-default-state {
+				function = "pwm9";
+				groups = "pwm9";
+			};
+
+			pwm10_default: pwm10-default-state {
+				function = "pwm10";
+				groups = "pwm10";
+			};
+
+			pwm11_default: pwm11-default-state {
+				function = "pwm11";
+				groups = "pwm11";
+			};
+
+			pwm12_default: pwm12-default-state {
+				function = "pwm12";
+				groups = "pwm12";
+			};
+
+			pwm13_default: pwm13-default-state {
+				function = "pwm13";
+				groups = "pwm13";
+			};
+
+			pwm14_default: pwm14-default-state {
+				function = "pwm14";
+				groups = "pwm14";
+			};
+
+			pwm15_default: pwm15-default-state {
+				function = "pwm15";
+				groups = "pwm15";
+			};
+
+			/* ============================================================
+			 * TACH0-7: GPIOB0-7 (PBCSUD16_WDDNW_3V_X, DVDD33_IO0)
+			 * TACH8-15: GPIOC0-7 (PBCSUD16_WDDNW_3V_X, DVDD33_IO0/IO1)
+			 * DRV-MISSING
+			 * Each TACH is a single pin.  Shares pins with UART5/6
+			 * modem signals, SCMGPO/SCMGPI, VPI, SALT, etc.
+			 * ============================================================ */
+			tach0_default: tach0-default-state {
+				function = "tach0";
+				groups = "tach0";
+			};
+
+			tach1_default: tach1-default-state {
+				function = "tach1";
+				groups = "tach1";
+			};
+
+			tach2_default: tach2-default-state {
+				function = "tach2";
+				groups = "tach2";
+			};
+
+			tach3_default: tach3-default-state {
+				function = "tach3";
+				groups = "tach3";
+			};
+
+			tach4_default: tach4-default-state {
+				function = "tach4";
+				groups = "tach4";
+			};
+
+			tach5_default: tach5-default-state {
+				function = "tach5";
+				groups = "tach5";
+			};
+
+			tach6_default: tach6-default-state {
+				function = "tach6";
+				groups = "tach6";
+			};
+
+			tach7_default: tach7-default-state {
+				function = "tach7";
+				groups = "tach7";
+			};
+
+			tach8_default: tach8-default-state {
+				function = "tach8";
+				groups = "tach8";
+			};
+
+			tach9_default: tach9-default-state {
+				function = "tach9";
+				groups = "tach9";
+			};
+
+			tach10_default: tach10-default-state {
+				function = "tach10";
+				groups = "tach10";
+			};
+
+			tach11_default: tach11-default-state {
+				function = "tach11";
+				groups = "tach11";
+			};
+
+			tach12_default: tach12-default-state {
+				function = "tach12";
+				groups = "tach12";
+			};
+
+			tach13_default: tach13-default-state {
+				function = "tach13";
+				groups = "tach13";
+			};
+
+			tach14_default: tach14-default-state {
+				function = "tach14";
+				groups = "tach14";
+			};
+
+			tach15_default: tach15-default-state {
+				function = "tach15";
+				groups = "tach15";
+			};
+
+			/* ============================================================
+			 * SGPM0: GPIOAA0-4 (PBCSUD16_WDDNW_3V_Y, DVDD33_SGP0/SGP1)
+			 * DRV-MISSING
+			 * 5 signals: ck, ld, ldr, o, i.
+			 * ============================================================ */
+			sgpm0_default: sgpm0-default-state {
+				function = "sgpm0";
+				groups = "sgpm0_ck", "sgpm0_ld", "sgpm0_ldr",
+					 "sgpm0_o", "sgpm0_i";
+			};
+
+			/* ============================================================
+			 * SGPM1: GPIOAA5-7 + GPIOH2-3 (cross-bank)
+			 * (PBCSUD16_WDDNW_3V_Y, DVDD33_SGP0/SGP1 / DVDD33_IO2/SGP1)
+			 * DRV-MISSING
+			 * 5 signals: ck, ld, ldr, o, i.
+			 * SGPM1CK (AA5) STRAP: 0 for eSPI mode.
+			 * ============================================================ */
+			sgpm1_default: sgpm1-default-state {
+				function = "sgpm1";
+				groups = "sgpm1_ck", "sgpm1_ld", "sgpm1_ldr",
+					 "sgpm1_o", "sgpm1_i";
+			};
+
+			/* ============================================================
+			 * VGA HSYNC/VSYNC: GPIOS6-7 (PBCSUD16_WDDNW_3V_Y,
+			 *                  DVDD33_RGMI0/BMC) — DRV-MISSING
+			 * Only 2 GPIO-muxed pins; the other 4 VGA pins (DAC) are
+			 * pure analog and do not go through pinctrl.
+			 * ============================================================ */
+			vga_default: vga-default-state {
+				function = "vga";
+				groups = "vga_hs", "vga_vs";
+			};
+
+			/* ============================================================
+			 * WDTRST0-3: GPIOG2-5 (PBCSUD16_WDDNW_3V_X, DVDD33_IO2)
+			 * WDTRST4-6: GPIOAA5-7 (PBCSUD16_WDDNW_3V_Y, DVDD33_SGP0/SGP1)
+			 * WDTRST7: GPIOH2 (PBCSUD16_WDDNW_3V_X, DVDD33_IO2/SGP1)
+			 * DRV-MISSING
+			 * Each WDTRST is a single pin.  Shares pins with PWM8-15,
+			 * SGPM1, UART, I2C, etc.
+			 * ============================================================ */
+			wdtrst0_default: wdtrst0-default-state {
+				function = "wdtrst0";
+				groups = "wdtrst0";
+			};
+
+			wdtrst1_default: wdtrst1-default-state {
+				function = "wdtrst1";
+				groups = "wdtrst1";
+			};
+
+			wdtrst2_default: wdtrst2-default-state {
+				function = "wdtrst2";
+				groups = "wdtrst2";
+			};
+
+			wdtrst3_default: wdtrst3-default-state {
+				function = "wdtrst3";
+				groups = "wdtrst3";
+			};
+
+			wdtrst4_default: wdtrst4-default-state {
+				function = "wdtrst4";
+				groups = "wdtrst4";
+			};
+
+			wdtrst5_default: wdtrst5-default-state {
+				function = "wdtrst5";
+				groups = "wdtrst5";
+			};
+
+			wdtrst6_default: wdtrst6-default-state {
+				function = "wdtrst6";
+				groups = "wdtrst6";
+			};
+
+			wdtrst7_default: wdtrst7-default-state {
+				function = "wdtrst7";
+				groups = "wdtrst7";
+			};
+
+			/* ============================================================
+			 * PECI: GPIOCC0-1 (rpt_gpio_peci, DVDD10_PECI, 1.0V only)
+			 * DRV-MISSING
+			 * Single group "peci".  GPIOCC is a mixed voltage domain
+			 * bank: CC0-1 = 1.0V PECI, CC2-3 = 3.3V, CC4-7 = 1.8V.
+			 * pinconf must respect 1.0V pad constraints (PU/PD/DS 2-bit
+			 * only, no ST/SL/ODE).
+			 * ============================================================ */
+			peci_default: peci-default-state {
+				function = "peci";
+				groups = "peci";
+			};
+
+			/* ============================================================
+			 * MDIO2/MDC2: GPIOQ0-1 (PBCSUD16_WDDNW_3V_Y, DVDD33_BMC/FSPI)
+			 * DRV-MISSING
+			 * Shares GPIOQ0-1 with JTAGMS via different funcN.
+			 * ============================================================ */
+			mdio2_default: mdio2-default-state {
+				function = "mdio2";
+				groups = "mdc2", "mdio2";
+			};
+
+			/*
+			 * Summary:
+			 *   DRV-EXISTS: i2c0-1, spi0, fwspi, jtagms(gpio/mjtag),
+			 *               ip_uart0-15 (except 12)
+			 *   DRV-MISSING: i2c2-15, i3c_hv0-3, i3c4-15,
+			 *                rgmii0-1, espi0, emmc, sd0, spi1-2,
+			 *                pwm0-15, tach0-15, sgpm0-1, vga,
+			 *                wdtrst0-7, peci, mdio2
+			 *   Not included (dedicated/analog, no GPIO mux):
+			 *   DAC, ADC16-23, LTPI1-2, DDR, PCIe, DP, USB, PE2SG
+			 */
+		};
+	};
+};

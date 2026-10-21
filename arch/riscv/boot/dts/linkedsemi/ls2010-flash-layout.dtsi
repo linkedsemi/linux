@@ -1,0 +1,89 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/* Copyright (c) 2026 Linkedsemi */
+/* LS2010 unified SPI-NOR flash controller nodes + partition table — shared
+ * by U-Boot and Kernel, and identical for both machines (ls2010-default /
+ * ls2010-default-protium).  Final user-approved 9-partition design layout
+ * (128 MiB): secure-image placeholder at 0 (E906 secure core firmware,
+ * design G1, delivery pending), u-boot (OpenSBI fw_payload) at 256 KiB,
+ * u-boot-env at 2944 KiB, kernel at 3072 KiB, A/B rootfs/kernel backups,
+ * pfm at 130048 KiB.  The u-boot-env partition at 2944 KiB matches the
+ * vendor lsbmc_evk_defconfig CONFIG_ENV_OFFSET=0x2E0000, so no fragment
+ * override is needed.  Must stay in sync with FLASH_* offsets in
+ * conf/machine/*.conf and fw_env_ls2010_nor.config.  No /dts-v1/ header
+ * here — it must appear only in the top-level .dts.
+ */
+
+&spi1 {
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&fwqspi {
+	flash@0 {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <50000000>;
+		spi-tx-bus-width = <1>;
+		spi-rx-bus-width = <1>;
+
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			/* secure-image: 0x0 ~ 0x40000 (0 ~ 256 KiB, 0xFF placeholder) */
+			partition@0 {
+				label = "secure-image";
+				reg = <0x0 0x40000>;
+			};
+			/* u-boot: 0x40000 ~ 0x2E0000 (256 ~ 2944 KiB, OpenSBI
+			 * fw_payload, budget = FLASH_UBOOT_ENV_OFFSET 2944
+			 * - FLASH_SECURE_IMAGE_SIZE 256 = 2688 KiB) */
+			partition@40000 {
+				label = "u-boot";
+				reg = <0x40000 0x2A0000>;
+			};
+			/* u-boot-env: 0x2E0000 ~ 0x300000 (2944 ~ 3072 KiB,
+			 * CONFIG_ENV_OFFSET = 0x2E0000, vendor defconfig default) */
+			partition@2E0000 {
+				label = "u-boot-env";
+				reg = <0x2E0000 0x20000>;
+			};
+			/* kernel: 0x300000 ~ 0xD00000 (3072 ~ 13312 KiB, 10 MiB FIT) */
+			partition@300000 {
+				label = "kernel";
+				reg = <0x300000 0xA00000>;
+			};
+			/* rofs: 0xD00000 ~ 0x3A00000 (13312 ~ 59392 KiB, 45 MiB) */
+			partition@D00000 {
+				label = "rofs";
+				reg = <0xD00000 0x2D00000>;
+			};
+			/* rwfs: 0x3A00000 ~ 0x4800000 (59392 ~ 73728 KiB, 14 MiB,
+			 * RWFS_SIZE = 14680064 bytes) */
+			partition@3A00000 {
+				label = "rwfs";
+				reg = <0x3A00000 0xE00000>;
+			};
+			/* bak-rofs: 0x4800000 ~ 0x7500000 (73728 ~ 119808 KiB, 45 MiB) */
+			partition@4800000 {
+				label = "bak-rofs";
+				reg = <0x4800000 0x2D00000>;
+			};
+			/* bak-kernel: 0x7500000 ~ 0x7F00000 (119808 ~ 130048 KiB,
+			 * 10 MiB FIT backup) */
+			partition@7500000 {
+				label = "bak-kernel";
+				reg = <0x7500000 0xA00000>;
+			};
+			/* pfm: 0x7F00000 ~ 0x8000000 (130048 ~ 131072 KiB, 1 MiB) */
+			partition@7F00000 {
+				label = "pfm";
+				reg = <0x7F00000 0x100000>;
+			};
+		};
+	};
+};

@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: (GPL-2.0 OR MIT)
+/* Copyright (c) 2026 Linkedsemi */
+/* LS2010 EVB Linux/OpenSBI device tree — Kernel only.
+ * SoC hardware comes from ls2010-common.dtsi (all nodes disabled by default).
+ * This file enables all functional nodes for the running kernel.
+ */
+
+/dts-v1/;
+
+#include "ls2010-common.dtsi"
+#include "ls2010-flash-layout.dtsi"
+
+/ {
+	model = "LinkedSemi LS2010 EVB";
+
+	chosen {
+		bootargs = "earlycon console=ttyS0,1152000 norandmaps no4lvl loglevel=8 ignore_loglevel dyndbg=\"file drivers/usb/host/xhci* +p; file drivers/usb/core/hub.c +p; file drivers/net/ethernet/stmicro/stmmac* +p;\"";
+		stdout-path = &uart12;
+		linux,initrd-start = <0x1 0x80000000>;
+		linux,initrd-end = <0x1 0x80369a00>;
+	};
+};
+
+/* All functional nodes */
+&uart12 { status = "okay"; };
+&gpio0 { status = "okay"; };
+&fwqspi { status = "okay"; };
+&mailbox { status = "okay"; };
+&vw0 { status = "okay"; };
+&kcs0 { status = "okay"; };
+&vuart1 { status = "okay"; };
+&mmbi0 { status = "okay"; };
+&pcc0 { status = "okay"; };
+&spi0 { status = "okay"; };
+&spi1 { status = "okay"; };
+&spi2 { status = "okay"; };
+&rtc0 { status = "okay"; };
+&i2c0 { status = "okay"; };
+&i2c1 { status = "okay"; };
+&i2c2 { status = "okay"; };
+&i2c3 { status = "okay"; };
+&i2c4 { status = "okay"; };
+&i2c5 { status = "okay"; };
+&i2c6 { status = "okay"; };
+&i2c7 { status = "okay"; };
+&i2c8 { status = "okay"; };
+&i2c9 { status = "okay"; };
+&i2c10 { status = "okay"; };
+&i2c11 { status = "okay"; };
+&i2c12 { status = "okay"; };
+&i2c13 { status = "okay"; };
+&i2c14 { status = "okay"; };
+&i2c15 { status = "okay"; };
+&i3c0 { status = "okay"; };
+&i3c1 { status = "okay"; };
+&i3c2 { status = "okay"; };
+&i3c3 { status = "okay"; };
+&i3c4 { status = "okay"; };
+&i3c5 { status = "okay"; };
+&i3c6 { status = "okay"; };
+&i3c7 { status = "okay"; };
+&i3c8 { status = "okay"; };
+&i3c9 { status = "okay"; };
+&i3c10 { status = "okay"; };
+&i3c11 { status = "okay"; };
+&i3c12 { status = "okay"; };
+&i3c13 { status = "okay"; };
+&i3c14 { status = "okay"; };
+&i3c15 { status = "okay"; };
+&sgmii0 { status = "okay"; };
+&xhci0 { status = "okay"; };
+&emmc { status = "okay"; };
+&adc0 { status = "okay"; };
+&adc1 { status = "okay"; };
+&adc2 { status = "okay"; };
+&pcie0_ep { status = "okay"; };
+&mctp_pcie0 { status = "okay"; };
+&ls_pcie_vhub { status = "okay"; };
+&peci0 { status = "okay"; };
+/* PECI1 not brought out to any physical ball — keep disabled */
