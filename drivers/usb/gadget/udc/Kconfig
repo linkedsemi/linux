@@ -442,6 +442,16 @@ config USB_LINKEDSEMI_PCIE_VHUB
 	  This support is also available as a module. The module will be
 	  called pcie-vhub.
 
+config USB_LINKEDSEMI_VHUB
+	tristate "Linkedsemi virtual DWC3 hub UDC"
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	help
+	  Standalone virtual DWC3 controller and USB hub UDC for the
+	  Linkedsemi LS2010 SoC.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-vhub.
+
 #
 # LAST -- dummy/emulated controller
 #
