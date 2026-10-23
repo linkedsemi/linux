@@ -17,3 +17,21 @@ menuconfig JTAG
 	  To compile this driver as a module, choose M here: the module will
 	  be called jtag.
 
+if JTAG
+
+config JTAG_LINKEDSEMI
+	tristate "Linkedsemi LS2010 JTAG controller support"
+	depends on HAS_IOMEM
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	help
+	  This provides support for the JTAG master controller found on
+	  Linkedsemi LS2010 SoCs. The driver exposes the standard JTAG
+	  character device interface and supports frequency control, TAP
+	  state changes, IR/DR scans and bit-banging.
+
+	  If you want this support, you should say Y here.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called linkedsemi-jtag.
+
+endif # JTAG
