@@ -6,6 +6,13 @@ menuconfig MAILBOX
 	  on-chip processors through queued messages and interrupt driven
 	  signals. Say Y if your platform supports hardware mailboxes.
 
+config LINKEDSEMI_LOCK_FREE_FIFO
+	tristate "Linkedsemi lock-free shared-memory FIFO helper"
+	depends on MAILBOX
+	help
+	  Shared-memory lock-free FIFO used by the Linkedsemi mailbox and
+	  virtual UART drivers.
+
 if MAILBOX
 
 config ARM_MHU
@@ -389,5 +396,18 @@ config RISCV_SBI_MPXY_MBOX
 	  remote processor through the SBI implementation (M-mode firmware
 	  or HS-mode hypervisor). Say Y here if you want to have this support.
 	  If unsure say N.
+
+config LINKEDSEMI_MAILBOX
+	tristate "Linkedsemi LS2010 mailbox controller"
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	select MFD_SYSCON
+	select LINKEDSEMI_LOCK_FREE_FIFO
+	help
+	  Mailbox controller for the Linkedsemi LS2010 SoC. The mailbox
+	  uses shared-memory FIFOs to exchange messages between the host
+	  and the BMC.
+
+	  This support is also available as a module. The module will be
+	  called mailbox-linkedsemi.
 
 endif
