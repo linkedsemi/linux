@@ -167,6 +167,19 @@ config IPMI_KCS_BMC_SERIO
 	  This support is also available as a module. The module will be
 	  called kcs_bmc_serio.
 
+config IPMI_KCS_BMC_LINKEDSEMI
+	tristate "Linkedsemi LS2010 KCS IPMI BMC driver"
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	depends on MAILBOX
+	depends on IPMI_KCS_BMC
+	help
+	  Provides a driver for the KCS IPMI interface on the Linkedsemi
+	  LS2010 SoC. It implements the BMC side of the KCS controller
+	  using a shared-memory mailbox transport.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-kcs.
+
 config ASPEED_BT_IPMI_BMC
 	depends on ARCH_ASPEED || COMPILE_TEST
 	depends on MFD_SYSCON
