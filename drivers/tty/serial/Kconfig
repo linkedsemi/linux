@@ -1619,6 +1619,19 @@ config SERIAL_ESP32_ACM
 	  snippet may be used:
 	    earlycon=esp32s3acm,mmio32,0x60038000
 
+config SERIAL_LINKEDSEMI_VUART
+	tristate "Linkedsemi LS2010 virtual UART"
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	depends on MAILBOX
+	select SERIAL_CORE
+	select LINKEDSEMI_LOCK_FREE_FIFO
+	help
+	  Virtual UART for the Linkedsemi LS2010 SoC. The UART registers
+	  live in shared memory and the peer is notified through a mailbox.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-vuart.
+
 endmenu
 
 config SERIAL_MCTRL_GPIO
