@@ -421,6 +421,27 @@ source "drivers/usb/gadget/udc/aspeed-vhub/Kconfig"
 
 source "drivers/usb/gadget/udc/cdns2/Kconfig"
 
+config USB_LINKEDSEMI_PCIE_VUSB
+	tristate "Linkedsemi PCIe virtual USB device backend"
+	depends on PCIE_DW_LINKEDSEMI
+	help
+	  Virtual xHCI controller emulation over a Linkedsemi PCIe
+	  endpoint. It is used as the backend for the virtual USB hub
+	  gadget.
+
+	  This support is also available as a module. The module will be
+	  called pcie-vusb.
+
+config USB_LINKEDSEMI_PCIE_VHUB
+	tristate "Linkedsemi PCIe virtual USB hub gadget"
+	depends on USB_LINKEDSEMI_PCIE_VUSB
+	help
+	  Virtual USB hub gadget built on top of the Linkedsemi PCIe
+	  virtual USB device backend.
+
+	  This support is also available as a module. The module will be
+	  called pcie-vhub.
+
 #
 # LAST -- dummy/emulated controller
 #

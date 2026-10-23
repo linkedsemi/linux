@@ -38,3 +38,5 @@ obj-$(CONFIG_USB_ASPEED_UDC)	+= aspeed_udc.o
 obj-$(CONFIG_USB_BDC_UDC)	+= bdc/
 obj-$(CONFIG_USB_MAX3420_UDC)	+= max3420_udc.o
 obj-$(CONFIG_USB_CDNS2_UDC)	+= cdns2/
+obj-$(CONFIG_USB_LINKEDSEMI_PCIE_VUSB)	+= pcie_vusb/
+obj-$(CONFIG_USB_LINKEDSEMI_PCIE_VHUB)	+= pcie_vhub/
