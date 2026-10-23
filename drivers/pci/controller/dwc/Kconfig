@@ -288,6 +288,23 @@ config PCIE_DW_PLAT_EP
 	  order to enable device-specific features PCI_DW_PLAT_EP must be
 	  selected.
 
+config PCIE_DW_LINKEDSEMI
+	tristate "Linkedsemi LS2010 PCIe controller"
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	depends on PCI_MSI
+	depends on PCI_ENDPOINT
+	depends on DW_EDMA=y
+	select PCIE_DW_HOST
+	select PCIE_DW_EP
+	select MFD_SYSCON
+	help
+	  DesignWare PCIe controller glue for the Linkedsemi LS2010 SoC.
+	  The controller supports both host and endpoint modes and uses
+	  the built-in eDMA engine.
+
+	  This support is also available as a module. The module will be
+	  called pcie-linkedsemi.
+
 config PCIE_QCOM_COMMON
 	bool
 
