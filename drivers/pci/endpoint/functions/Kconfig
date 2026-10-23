@@ -47,3 +47,24 @@ config PCI_EPF_MHI
 	   devices such as SDX55.
 
 	   If in doubt, say "N" to disable Endpoint driver for MHI bus.
+
+config PCI_EPF_VGA
+	tristate "PCI Endpoint VGA function"
+	depends on PCI_ENDPOINT && PCIE_DW_LINKEDSEMI
+	help
+	  PCI endpoint function that exposes a virtual VGA device to the
+	  host. Used with the Linkedsemi LS2010 PCIe endpoint controller.
+
+	  This support is also available as a module. The module will be
+	  called pci-epf-vga.
+
+config PCI_EPF_XHCI
+	tristate "PCI Endpoint xHCI function"
+	depends on PCI_ENDPOINT && PCIE_DW_LINKEDSEMI
+	help
+	  PCI endpoint function that exposes a virtual xHCI controller to
+	  the host. Used with the Linkedsemi LS2010 PCIe endpoint
+	  controller.
+
+	  This support is also available as a module. The module will be
+	  called pci-epf-xhci.
