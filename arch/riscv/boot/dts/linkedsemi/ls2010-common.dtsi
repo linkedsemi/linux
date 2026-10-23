@@ -838,7 +838,7 @@
 			 * through platform_get_resource_byname().  interrupts =
 			 * periph_virtual_usb0_intr (manual IRQ table; number
 			 * follows the first column used by all existing nodes).
-			 * Driver: drivers/usb/gadget/udc/ls-pcie-vusb.c
+			 * Driver: drivers/usb/gadget/udc/pcie_vusb/linkedsemi-pcie-vusb.c
 			 */
 			ls_pcie_vusb: ls-pcie-vusb {
 				compatible = "linkedsemi,ls-pcie-vusb";
@@ -857,7 +857,7 @@
 				 * which the vusb driver sets before it populates
 				 * DT children (of_platform_populate).  No reg, no
 				 * interrupt: the hub rides the vusb DMA path.
-				 * Driver: drivers/usb/gadget/udc/vhub.c
+				 * Driver: drivers/usb/gadget/udc/vhub/vhub.c
 				 */
 				ls_pcie_vhub: ls-pcie-vhub {
 					compatible = "linkedsemi,ls-pcie-vhub";

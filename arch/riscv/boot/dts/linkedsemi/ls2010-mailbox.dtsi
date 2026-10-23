@@ -35,7 +35,7 @@
 	aliases {
 		/*
 		 * VUART port line 0.  of_alias_get_id(np, "vuart") in
-		 * drivers/tty/serial/ls_vuart.c resolves the uart_port.line from
+		 * drivers/tty/serial/linkedsemi-vuart.c resolves the uart_port.line from
 		 * this; LS_VUART_NR_UARTS is 1 so only "vuart0" is valid.  The
 		 * vuart1 mailbox VUART is the sole host console endpoint.
 		 */
@@ -99,9 +99,10 @@
 		 * and no dtc simple_bus_reg warning.
 		 */
 		kcs0: kcs@b0800800 {
-			compatible = "linkedsemi,kcs-bmc-mbox";
+			compatible = "linkedsemi,ls-kcs-bmc";
 			reg = <0x0 0xb0800800 0x0 0x10>;	/* reg#0 shadow host_kcs_env */
 			mboxes = <&mailbox 0 4 3 4 3>;	/* chan0, tx 4B×3, rx 4B×3 */
+			kcs_chan = <1>;
 			status = "disabled";
 		};
 
@@ -124,7 +125,7 @@
 		 * host_vuart_fifo symbol/offset (design v7 8 open_questions) and
 		 * MUST NOT be taken as claiming the VUART rings live inside the
 		 * mailbox data slot.  The ls_vuart driver
-		 * (drivers/tty/serial/ls_vuart.c) parses only reg index 0.
+		 * (drivers/tty/serial/linkedsemi-vuart.c) parses only reg index 0.
 		 * mboxes: chan1, tx 8B×3, rx 8B×3 (item_size 8 heartbeat).
 		 */
 		vuart1: vuart@b0800030 {

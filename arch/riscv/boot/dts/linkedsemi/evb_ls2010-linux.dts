@@ -75,6 +75,7 @@
 &adc2 { status = "okay"; };
 &pcie0_ep { status = "okay"; };
 &mctp_pcie0 { status = "okay"; };
+&ls_pcie_vusb { status = "okay"; };
 &ls_pcie_vhub { status = "okay"; };
 &peci0 { status = "okay"; };
 /* PECI1 not brought out to any physical ball — keep disabled */
