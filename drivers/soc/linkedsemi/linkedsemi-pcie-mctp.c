@@ -18,7 +18,7 @@
 #include <linux/poll.h>
 #include <uapi/linux/poll.h>
 #include "pcie-linkedsemi.h"
-#include "aspeed-mctp.h"
+#include <uapi/linux/aspeed-mctp.h>
 #define MCTP_RX_FIFO_CTRL_OFFSET 0x0
 #define MCTP_RX_FIFO_POP_BIT BIT(6)
 #define MCTP_RX_FIFO_WCLR_BIT BIT(7)

@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+if ARCH_LINKEDSEMI || COMPILE_TEST
+
+menu "Linkedsemi SoC drivers"
+
+config MCTP_PCIE_LINKEDSEMI
+	tristate "MCTP over PCIe VDM transport for Linkedsemi LS2010"
+	depends on PCIE_DW_LINKEDSEMI
+	help
+	  MCTP transport over PCIe vendor-defined messages for the
+	  Linkedsemi LS2010 endpoint controller. It exposes a character
+	  device compatible with the Aspeed MCTP interface.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-pcie-mctp.
+
+endmenu
+
+endif
