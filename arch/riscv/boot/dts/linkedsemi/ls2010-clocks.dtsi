@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0 OR MIT)
 /* Copyright (c) 2026 Linkedsemi */
-/* LS2010 SoC clock providers — one node per sys_cfg register block.
+/* LS2010 SoC clock providers — one node per sys_cfg register block
+ * (except CPU1_SYS_CFG 0x60500000, which is exposed as the cpu1_sys
+ * syscon instead).
  * P1 stage: read-only fixed-rate reporting (clk-ls2010.c).
  * Included by ls2010-common.dtsi; the /soc block merges with the one in
  * ls2010-common.dtsi, so the clock-controller nodes stay children of the
@@ -13,13 +15,6 @@
 		clk_cpu0: clock-controller@1300000 {
 			compatible = "linkedsemi,ls2010-cpu0-clk";
 			reg = <0x0 0x01300000 0x0 0x1000>;
-			#clock-cells = <1>;
-			#reset-cells = <1>;
-		};
-
-		clk_cpu1: clock-controller@60500000 {
-			compatible = "linkedsemi,ls2010-cpu1-clk";
-			reg = <0x0 0x60500000 0x0 0x1000>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};

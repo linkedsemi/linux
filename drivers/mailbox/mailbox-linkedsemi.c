@@ -14,6 +14,18 @@
 
 /* mboxes cell layout: <&mbox channel tx_width tx_depth rx_width rx_depth> */
 #define LS_MBOX_DT_CELLS	5
+#define MBOX_FIFO_TX_SLOT  0
+#define MBOX_FIFO_RX_SLOT  1
+struct mbox_fifo_cfg {
+	u32 env;
+	u16 width;
+	u16 depth;
+};
+
+struct mbox_info_end {
+	u8 mbox_magic[3];
+	u8 total_chans;
+};
 
 struct chan_info {
     struct lf_fifo_env *env;
@@ -24,6 +36,7 @@ struct chan_info {
 struct mbox_chan_info {
     struct chan_info tx;
     struct chan_info rx;
+    bool enabled;
     bool started;
 };
 
@@ -148,13 +161,11 @@ static void ls_mbox_shutdown(struct mbox_chan *chan)
     synchronize_irq(priv->irq);
 }
 
-static int count_clients_in_dt(struct device_node *controller_dn)
+static int count_total_clients_in_dt(struct device_node *controller_dn)
 {
     struct device_node *client_dn;
     int count = 0;
     for_each_node_with_property(client_dn,"mboxes") {
-		if (!of_device_is_available(client_dn))
-			continue;
         struct of_phandle_args args;
         if (of_parse_phandle_with_args(client_dn, "mboxes", "#mbox-cells", 0, &args))
             continue;
@@ -172,13 +183,17 @@ static void *mbox_chan_info_assign(struct chan_info *ch,void *mem)
     return mem + ALIGN(sizeof(struct lf_fifo_env) + ch->width * ch->depth, 4);
 }
 
-static void ls_mbox_fifo_init(struct lf_fifo_env *env, struct chan_info *ch, phys_addr_t env_phys)
+static bool mbox_fifo_cfg_check(struct device *dev,struct mbox_fifo_cfg *cfg,u32 phy_mem_base, struct chan_info *ch_info,void *env_base)
 {
-    env->buf = env_phys + sizeof(struct lf_fifo_env);
-    env->rd_idx = 0;
-    env->wr_idx = 0;
-    env->length = ch->depth;
-    env->item_size = ch->width;
+	if(cfg->width != ch_info->width || cfg->depth != ch_info->depth) {
+		dev_err(dev, "MBOX TX/RX fifo width/depth mismatch, check image");
+		return false;
+	}
+    if(cfg->env - phy_mem_base != (void *)ch_info->env - env_base) {
+        dev_err(dev, "MBOX TX/RX fifo env mismatch, check image");
+        return false;
+    }
+	return true;
 }
 
 static int collect_mbox_channels_info(struct ls_mbox_priv *priv, struct device_node *controller_dn, struct resource *res)
@@ -220,7 +235,7 @@ static int collect_mbox_channels_info(struct ls_mbox_priv *priv, struct device_n
             err = -EINVAL;
             continue;
         }
-
+        priv->ch_info[ch_idx].enabled = true;
         priv->ch_info[ch_idx].tx.width = args.args[1];
         priv->ch_info[ch_idx].tx.depth = args.args[2];
         priv->ch_info[ch_idx].rx.width = args.args[3];
@@ -233,43 +248,43 @@ static int collect_mbox_channels_info(struct ls_mbox_priv *priv, struct device_n
         return err;
     }
 
-    for(int i=0; i<priv->mbox.num_chans; ++i) {
-        if(!priv->ch_info[i].tx.width || !priv->ch_info[i].tx.depth ||
-           !priv->ch_info[i].rx.width || !priv->ch_info[i].rx.depth) {
-            dev_err(priv->mbox.dev, "mbox channel %d is not configured\n", i);
-            return -EINVAL;
-        }
-    }
-
-    size_t need_size = 0;
-    for(int i=0; i<priv->mbox.num_chans; ++i) {
-        need_size += ALIGN(sizeof(struct lf_fifo_env) +
-                           (size_t)priv->ch_info[i].tx.width *
-                           priv->ch_info[i].tx.depth, 4);
-        need_size += ALIGN(sizeof(struct lf_fifo_env) +
-                           (size_t)priv->ch_info[i].rx.width *
-                           priv->ch_info[i].rx.depth, 4);
-    }
-    if(resource_size(res) < need_size) {
-        dev_err(priv->mbox.dev, "mbox shared memory too small: need %zu bytes, have %llu\n",
-                need_size, (unsigned long long)resource_size(res));
-        return -EINVAL;
-    }
-
     void *mem = devm_ioremap_resource(priv->mbox.dev,res);
     if(IS_ERR(mem)) {
         dev_err(priv->mbox.dev, "Fail to remap ls-mbox share memory\n");
         return PTR_ERR(mem);
     }
+
+    struct mbox_info_end *info_end = mem + res->end - res->start + 1 - sizeof(struct mbox_info_end);
+    if(info_end->mbox_magic[0] != 'M' || info_end->mbox_magic[1] != 'B' || info_end->mbox_magic[2] != 'X') {
+        dev_err(priv->mbox.dev, "Fail to find ls-mbox magic\n");
+        return -EINVAL;
+    }
+    if(info_end->total_chans != priv->mbox.num_chans) {
+        dev_err(priv->mbox.dev, "Fail: ls-mbox total channels not match\n");
+        return -EINVAL;
+    }
+
     void *mbox_base = mem;
     for(int i=0; i<priv->mbox.num_chans; ++i) {
-        struct chan_info *tx = &priv->ch_info[i].tx;
-
-        ls_mbox_fifo_init(mem, tx,mem - mbox_base + res->start);
-        mem = mbox_chan_info_assign(tx, mem);
+        if(priv->ch_info[i].enabled == false) {
+            continue;
+        }
+        mem = mbox_chan_info_assign(&priv->ch_info[i].tx, mem);
         mem = mbox_chan_info_assign(&priv->ch_info[i].rx, mem);
     }
-    wmb();
+
+    struct mbox_fifo_cfg (*fifo_cfg)[2] = (void *)info_end - priv->mbox.num_chans*2*sizeof(struct mbox_fifo_cfg);
+    for(int i=0; i<priv->mbox.num_chans; ++i) {
+        if(priv->ch_info[i].enabled == false) {
+            continue;
+        }
+        if(!mbox_fifo_cfg_check(priv->mbox.dev,&fifo_cfg[i][MBOX_FIFO_TX_SLOT],res->start,&priv->ch_info[i].tx,mbox_base)) {
+            return -EINVAL;
+        }
+        if(!mbox_fifo_cfg_check(priv->mbox.dev,&fifo_cfg[i][MBOX_FIFO_RX_SLOT],res->start,&priv->ch_info[i].rx,mbox_base)) {
+            return -EINVAL;
+        }
+    }
     return 0;
 }
 
@@ -292,7 +307,7 @@ static int ls_mbox_probe(struct platform_device *pdev)
     }
     priv->mbox.dev = dev;
     priv->mbox.ops = &ls_mbox_ops;
-    priv->mbox.num_chans = count_clients_in_dt(dev->of_node);
+    priv->mbox.num_chans = count_total_clients_in_dt(dev->of_node);
     priv->mbox.chans = devm_kcalloc(dev,priv->mbox.num_chans,sizeof(*priv->mbox.chans),GFP_KERNEL);
     if(!priv->mbox.chans) {
         dev_err(dev, "Failed to allocate memory for ls-mbox channels\n");

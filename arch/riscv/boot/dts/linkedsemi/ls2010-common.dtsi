@@ -254,6 +254,11 @@
 			reg = <0x0 0x01300000 0x0 0x1000>;
 		};
 
+		cpu1_sys: syscon@60500000 {
+			compatible = "syscon";
+			reg = <0x0 0x60500000 0x0 0x1000>;
+		};
+
 		rtc0: rtc@42126000 {
 			compatible = "linkedsemi,ls-rtc";
 			reg = <0x0 0x42126000 0x0 0x100>;

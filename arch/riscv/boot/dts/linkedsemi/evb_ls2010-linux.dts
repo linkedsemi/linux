@@ -26,11 +26,10 @@
 &gpio0 { status = "okay"; };
 &fwqspi { status = "okay"; };
 &mailbox { status = "okay"; };
-&vw0 { status = "okay"; };
+// &vw0 { status = "okay"; };
 &kcs0 { status = "okay"; };
-&vuart1 { status = "okay"; };
-&mmbi0 { status = "okay"; };
-&pcc0 { status = "okay"; };
+&vuart0 { status = "okay"; };
+// &pcc0 { status = "okay"; };
 &spi0 { status = "okay"; };
 &spi1 { status = "okay"; };
 &spi2 { status = "okay"; };
