@@ -15,6 +15,20 @@ config MCTP_PCIE_LINKEDSEMI
 	  This support is also available as a module. The module will be
 	  called linkedsemi-pcie-mctp.
 
+config ESPI_VW_LINKEDSEMI
+	tristate "Linkedsemi LS2010 eSPI virtual wire driver"
+	depends on OF && MAILBOX
+	help
+	  eSPI virtual wire (VW) channel driver for the Linkedsemi LS2010
+	  SoC. It exchanges VW messages with the E906 firmware over a
+	  mailbox channel and reads the system-event mirror from the shared
+	  SRAM window. It exposes the AST2700 aspeed-espi-vw compatible
+	  /dev/linkedsemi-espi-vwN ioctl interface plus a
+	  /dev/linkedsemi-espi-pltrstnN PLTRST# monitor.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-espi-vw.
+
 endmenu
 
 endif
