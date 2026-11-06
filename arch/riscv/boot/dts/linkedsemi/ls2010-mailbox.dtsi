@@ -32,12 +32,13 @@
 	aliases {
 		vuart0 = &vuart0;
 		espi-vw0 = &vw0;
+		pcc0 = &pcc0;
 	};
 
 	soc {
 		mailbox: mailbox@600000 {
 			compatible = "linkedsemi,ls-mbox";
-			reg = <0x0 0x00600000 0x0 0x4000>;	/* shared SRAM (RX/TX FIFOs) */
+			reg = <0x0 0x00600000 0x0 0x1000>;	/* shared SRAM (RX/TX FIFOs) */
 			interrupts = <102 4>;
 			#mbox-cells = <5>;	/* chan, tx_w, tx_d, rx_w, rx_d */
 			tx-syscon = <&cpu1_sys>;	/* CPU1_SYS_CFG: TX doorbell */
@@ -47,17 +48,17 @@
 			status = "disabled";
 		};
 
-		kcs0: kcs@604000 {
+		kcs0: kcs@601000 {
 			compatible = "linkedsemi,ls-kcs-bmc";
-			reg = <0x0 0x00604000 0x0 0x100>;	/* reg#0 shadow host_kcs_env */
+			reg = <0x0 0x00601000 0x0 0x100>;	/* reg#0 shadow host_kcs_env */
 			mboxes = <&mailbox 0 4 3 4 3>;	/* chan0, tx 4B×3, rx 4B×3 */
 			kcs_chan = <1>;
 			status = "disabled";
 		};
 
-		vuart0: vuart@604100 {
+		vuart0: vuart@601100 {
 			compatible = "linkedsemi,ls-vuart";
-			reg = <0x0 0x00604100 0x0 0x100>;	/* reg#0 host_vuart_fifo (PLACEHOLDER; independent of mbox data FIFOs, see above) */
+			reg = <0x0 0x00601100 0x0 0x100>;	/* reg#0 host_vuart_fifo (PLACEHOLDER; independent of mbox data FIFOs, see above) */
 			mboxes = <&mailbox 1 8 3 8 3>;	/* chan1, tx 8B×3, rx 8B×3 */
 			status = "disabled";
 		};
@@ -97,6 +98,35 @@
 			compatible = "linkedsemi,ls-espi-vw";
 			mboxes = <&mailbox 2 4 3 4 3>;	/* chan2, tx 4B×3, rx 4B×3 */
 			h2b-vw-base = <0x40045ff0>;	/* C908 view of struct espi_h2b_vw_base */
+			status = "disabled";
+		};
+
+		/*
+		 * ch3: Port80 (POST code capture) over mailbox.
+		 *
+		 * The E906 firmware
+		 * (soc/linkedsemi/common/espi_lpc/espi_lpc_host_pcc.c) snoops
+		 * host I/O writes to the ports listed in its host_pcc node
+		 * (80h-83h) and pushes each captured code into the shared
+		 * struct host_pcc_env { struct fifo_env fifo; struct
+		 * pcc_data data[128]; }, then raises a mailbox interrupt to
+		 * announce it.  The mailbox message carries no payload that
+		 * Linux uses; the linkedsemi-pcc driver drains the shared
+		 * FIFO on the event and exposes the codes as 2-byte records
+		 * through /dev/linkedsemi-pccN with read(2)/poll(2).  Linux
+		 * never sends on this channel; it is receive-only.
+		 *
+		 *   - reg = C908 view of the firmware's host_pcc_env in the
+		 *     shared SRAM (the E906's pcc-env-addr property).
+		 *   - mboxes chan3 = Linux-side channel for the post code
+		 *     events; the width/depth cells must match the E906
+		 *     firmware's mbox node exactly (2-byte records).
+		 *   - status = "disabled": board DTS overrides to "okay".
+		 */
+		pcc0: pcc@602000 {
+			compatible = "linkedsemi,ls-pcc";
+			reg = <0x0 0x00602000 0x0 0x1000>;	/* struct host_pcc_env, 12B env + 128×2B */
+			mboxes = <&mailbox 3 2 4 2 4>;	/* chan3, tx 2B×4, rx 2B×4 */
 			status = "disabled";
 		};
 
