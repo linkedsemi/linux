@@ -5,9 +5,9 @@
  * self-contained file.  Channels covered:
  *   ch0 — KCS      (IPMI KCS over mailbox)
  *   ch1 — VUART    (host SOL console heartbeat)
- *   ch2 — MMBI     (Mailbox-Managed BMC Interface, platform client)
- *   ch3 — VWire    (multi-group Down-VWire over mailbox)
- *   ch5 — Port80   (POST code capture)
+ *   ch2 — VWire    (multi-group Down-VWire over mailbox)
+ *   ch3 — Port80   (POST code capture)
+ *   ch4 — MMBI     (Mailbox-Managed BMC Interface, platform client)
  *
  * The shared window and its layout are owned by the E906 firmware
  * (Zephyr mbox driver, initiator role); see the mailbox node below.
@@ -58,6 +58,44 @@
 			compatible = "linkedsemi,ls-vuart";
 			reg = <0x0 0x00604100 0x0 0x100>;	/* reg#0 host_vuart_fifo (PLACEHOLDER; independent of mbox data FIFOs, see above) */
 			mboxes = <&mailbox 1 8 3 8 3>;	/* chan1, tx 8B×3, rx 8B×3 */
+			status = "disabled";
+		};
+
+		/*
+		 * ch3: VWire (multi-group Down-VWire) over mailbox.
+		 *
+		 * The E906 (zephyr/drivers/espi/espi_ls.c) sends a
+		 * struct espi_vwire_msg { u8 vw_idx; u8 vw_val; } event for
+		 * every changed down-VWire group: 2 (SLP_S3/S4/S5), 3
+		 * (SUS_STAT#, PLTRST#, OOB_RST_WARN), 7 (HOST_RST_WARN,
+		 * SMIOUT#, NMIOUT#) and the peripheral groups listed in the
+		 * E906's ms-vw-idx property.  The message only announces the
+		 * event; the levels are read by Linux from the shared
+		 * struct espi_h2b_vw_base:
+		 *
+		 *	struct espi_h2b_vw_base {
+		 *		u8 s02_ms;
+		 *		u8 s03_ms;
+		 *		u8 s07_ms;
+		 *		u8 ms_vw_val[8];
+		 *	};
+		 *
+		 * h2b-vw-base is the C908-view address of that structure —
+		 * the sysevent mirror at the tail of the E906's eSPI0
+		 * controller window (0x40045000 + 0xff0), the same value the
+		 * E906 espi_bmc_ls driver consumes.  Linux maps it for the
+		 * RX path; upstream VW updates travel in the mailbox message
+		 * itself (LS_ESPI_VW_PUT_VW ioctl).
+		 *
+		 *   - mboxes chan2 = Linux-side channel for VW events; the
+		 *     width/depth cells must match the E906 firmware's mbox
+		 *     node exactly.
+		 *   - status = "disabled": board DTS overrides to "okay".
+		 */
+		vw0: vw {
+			compatible = "linkedsemi,ls-espi-vw";
+			mboxes = <&mailbox 2 4 3 4 3>;	/* chan2, tx 4B×3, rx 4B×3 */
+			h2b-vw-base = <0x40045ff0>;	/* C908 view of struct espi_h2b_vw_base */
 			status = "disabled";
 		};
 
