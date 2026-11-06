@@ -29,6 +29,19 @@ config ESPI_VW_LINKEDSEMI
 	  This support is also available as a module. The module will be
 	  called linkedsemi-espi-vw.
 
+config PCC_LINKEDSEMI
+	tristate "Linkedsemi LS2010 Post Code Capture driver"
+	depends on OF && MAILBOX
+	help
+	  Post Code Capture (PCC) driver for the Linkedsemi LS2010 SoC.
+	  Post codes written by the host CPU to the eSPI/LPC I/O ports
+	  snooped by the E906 firmware are forwarded over a mailbox channel
+	  and exposed through /dev/linkedsemi-pccN with the same
+	  read(2)/poll(2) semantics as the Aspeed LPC PCC driver.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-pcc.
+
 endmenu
 
 endif
