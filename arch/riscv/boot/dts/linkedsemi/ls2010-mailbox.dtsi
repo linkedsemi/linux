@@ -31,6 +31,7 @@
 
 	aliases {
 		vuart0 = &vuart0;
+		espi-vw0 = &vw0;
 	};
 
 	soc {

@@ -292,7 +292,7 @@ static int ls_espi_vw_probe(struct platform_device *pdev)
 		return PTR_ERR(vw->mbox_ch);
 	}
 
-	id = of_alias_get_id(dev->of_node, "espi");
+	id = of_alias_get_id(dev->of_node, "espi-vw");
 	if (id < 0)
 		id = 0;
 
