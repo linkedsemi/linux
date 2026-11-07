@@ -25,9 +25,6 @@
 
 #define DEVICE_NAME "linkedsemi-pcc"
 
-/* Matches CONFIG_ESPI_LPC_PCC_FIFO_LENGTH in zephyr/soc/linkedsemi/Kconfig */
-#define PCC_FIFO_LENGTH 128
-
 /*
  * One post code captured by the E906 host PCC.  Keep in sync with
  * struct pcc_data in zephyr/include/zephyr/drivers/pcc.h.
@@ -45,7 +42,7 @@ struct pcc_data {
  */
 struct host_pcc_env {
 	struct lf_fifo_env fifo;
-	struct pcc_data data[PCC_FIFO_LENGTH];
+	struct pcc_data data[];
 };
 
 struct ls_pcc {
