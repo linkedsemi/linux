@@ -42,6 +42,55 @@ config PCC_LINKEDSEMI
 	  This support is also available as a module. The module will be
 	  called linkedsemi-pcc.
 
+config MMBI_LINKEDSEMI
+	tristate "Linkedsemi LS2010 MMBI common driver"
+	depends on OF
+	help
+	  Common BMC-side MMBI (Memory Mapped Bus Interface) driver for
+	  the Linkedsemi LS2010 SoC. It initializes the MMBI descriptor,
+	  the host_ros / host_rws pointer regions and allocates the
+	  B2H/H2B buffer space in the shared region provided by a
+	  transport driver (eSPI or PCIe), and exposes each channel as
+	  /dev/mmbiN-chM with the same read(2)/write(2)/poll(2) semantics
+	  as the Aspeed MMBI driver.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-mmbi.
+
+config ESPI_MMBI_LINKEDSEMI
+	tristate "Linkedsemi LS2010 eSPI MMBI driver"
+	depends on OF && MAILBOX
+	select MMBI_LINKEDSEMI
+	help
+	  eSPI transport for the Linkedsemi LS2010 MMBI driver. It
+	  exchanges MMBI_INFO / MMBI_HOST_INT / MMBI_HOST_RWS_WR messages
+	  with the E906 firmware (espi_lpc_host_mmbi.c) over a mailbox
+	  channel. After initialization it announces the MMBI region with
+	  MMBI_INFO; BMC-to-host interrupts are reported with
+	  MMBI_HOST_INT using the virtual wire index/data configured in
+	  the device tree.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-espi-mmbi.
+
+config PCIE_MMBI_LINKEDSEMI
+	tristate "Linkedsemi LS2010 PCIe MMBI endpoint function"
+	depends on PCI_ENDPOINT
+	select MMBI_LINKEDSEMI
+	help
+	  PCI endpoint function transport for the Linkedsemi LS2010 MMBI
+	  driver, modeled after pci-epf-xhci. It maps the MMBI region as
+	  BAR0 (create functions/ls_mmbi in the PCI endpoint configfs).
+	  BMC-to-host interrupts are raised with pci_epc_raise_irq();
+	  host-to-BMC interrupts arrive as a local doorbell interrupt
+	  when the host writes the mmbi-intr-offset BAR offset. The
+	  doorbell config register block and the local interrupt are
+	  described by the "ls_mmbi" child node of the endpoint
+	  controller's device tree node.
+
+	  This support is also available as a module. The module will be
+	  called linkedsemi-pcie-mmbi.
+
 endmenu
 
 endif
