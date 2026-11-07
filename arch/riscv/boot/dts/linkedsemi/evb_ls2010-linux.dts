@@ -30,6 +30,7 @@
 &kcs0 { status = "okay"; };
 &vuart0 { status = "okay"; };
 // &pcc0 { status = "okay"; };
+// &mmbi0 { status = "okay"; };
 &spi0 { status = "okay"; };
 &spi1 { status = "okay"; };
 &spi2 { status = "okay"; };
@@ -76,5 +77,6 @@
 &mctp_pcie0 { status = "okay"; };
 &ls_pcie_vusb { status = "okay"; };
 &ls_pcie_vhub { status = "okay"; };
+// &ls_mmbi { status = "okay"; };
 &peci0 { status = "okay"; };
 /* PECI1 not brought out to any physical ball — keep disabled */

@@ -33,6 +33,7 @@
 		vuart0 = &vuart0;
 		espi-vw0 = &vw0;
 		pcc0 = &pcc0;
+		espi-mmbi0 = &espi_mmbi0;
 	};
 
 	soc {
@@ -127,6 +128,37 @@
 			compatible = "linkedsemi,ls-pcc";
 			reg = <0x0 0x00602000 0x0 0x1000>;	/* struct host_pcc_env, 12B env + 128×2B */
 			mboxes = <&mailbox 3 2 4 2 4>;	/* chan3, tx 2B×4, rx 2B×4 */
+			status = "disabled";
+		};
+
+		/*
+		 * ch4: MMBI (Memory Mapped Bus Interface) over mailbox.
+		 *
+		 * The MMBI region is the no-map reserved-memory region
+		 * mmbi_mem1, mapped by the linkedsemi-espi-mmbi driver.
+		 * After initializing the MMBI descriptor the driver
+		 * announces the region's physical base and size to the E906
+		 * firmware with an MMBI_INFO message; the firmware
+		 * (soc/linkedsemi/common/espi_lpc/espi_lpc_host_mmbi.c)
+		 * then serves host MMBI accesses from it.  BMC-to-host
+		 * interrupts are reported with MMBI_HOST_INT on the virtual
+		 * wires configured by vw-idx/vw-data (6/0x11 = SCI, 0/1 =
+		 * edge groups); MMBI_HOST_RWS_WR sent by the firmware
+		 * announces host pointer updates.
+		 *
+		 *   - mboxes chan4 = Linux-side MMBI channel; the width/depth
+		 *     cells must match the E906 firmware's mbox node exactly
+		 *     (12-byte records, one struct ls_mmbi_msg).
+		 *   - vw-idx/vw-data are the virtual wire index/data carried
+		 *     in MMBI_HOST_INT.
+		 *   - status = "disabled": board DTS overrides to "okay".
+		 */
+		espi_mmbi0: mmbi {
+			compatible = "linkedsemi,ls-espi-mmbi";
+			memory-region = <&mmbi_mem1>;
+			mboxes = <&mailbox 4 12 3 12 3>;	/* chan4, tx 12B×3, rx 12B×3 */
+			vw-idx = <6>;				/* VW index in MMBI_HOST_INT */
+			vw-data = <0x11>;			/* VW data in MMBI_HOST_INT (SCI) */
 			status = "disabled";
 		};
 

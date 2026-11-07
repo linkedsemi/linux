@@ -41,6 +41,15 @@
 			reg = <0x0 0xd1000000 0x0 0x10000>;
 			no-map;
 		};
+
+		mmbi_mem0: mmbi-mem@d2000000 {
+			reg = <0x0 0xd2000000 0x0 0x10000>;
+			no-map;
+		};
+		mmbi_mem1: mmbi-mem@d2010000 {
+			reg = <0x0 0xd2010000 0x0 0x10000>;
+			no-map;
+		};
 	};
 
 	cpus: cpus {
@@ -834,6 +843,46 @@
 					<0x0 0xbfc 0x0 0x10>;
 				reg-names = "rx", "tx","bdf";
 				interrupts = <193 4>;
+				status = "disabled";
+			};
+
+			/*
+			 * MMBI (Memory Mapped Bus Interface) endpoint
+			 * function configuration, consumed by the
+			 * linkedsemi-pcie-mmbi PCI endpoint function
+			 * (configfs name "ls_mmbi",
+			 * drivers/soc/linkedsemi/linkedsemi-pcie-mmbi.c).
+			 * The function maps the reserved-memory region as
+			 * BAR0 and the EPC page containing the doorbell
+			 * address as BAR1; this node describes the
+			 * host->BMC interrupt path: when the host writes
+			 * mmbi-intr-value to the mmbi-intr-addr doorbell
+			 * address, the SoC raises the local doorbell
+			 * interrupt declared below.  The driver publishes
+			 * the doorbell offset within its BAR1 page
+			 * (bmc_int_location = mmbi-intr-addr - BAR1 base)
+			 * and the write value (bmc_int_value) in the MMBI
+			 * descriptor; the doorbell behavior itself is a
+			 * SoC property.
+			 *
+			 *   - memory-region = no-map reserved-memory region
+			 *     backing BAR0 (no dynamic allocation).
+			 *   - interrupts = local doorbell interrupt; take
+			 *     the number from the SoC interrupt table.
+			 *   - mmbi-intr-addr = doorbell address; BAR1 maps
+			 *     the EPC page containing it.
+			 *   - mmbi-intr-value = value the host writes to
+			 *     the doorbell (bmc_int_value).
+			 *   - status = "disabled": board DTS overrides to
+			 *     "okay".
+			 */
+			ls_pcie_mmbi: mmbi@0 {
+				compatible = "linkedsemi,ls-pcie-mmbi";
+				memory-region = <&mmbi_mem0>;
+				/* FIXME: MMBI doorbell interrupt (SoC interrupt table) */
+				interrupts = <191 4>;
+				mmbi-intr-addr = <0xd2000010>;
+				mmbi-intr-value = <0x1>;
 				status = "disabled";
 			};
 
