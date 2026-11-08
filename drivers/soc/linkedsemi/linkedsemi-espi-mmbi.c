@@ -81,6 +81,9 @@ struct ls_mmbi_msg {
 			u8 vw_idx;
 			u8 vw_data;
 		} host_int;
+		struct {
+			u8 ch;
+		} host_rws_wr;
 	} u;
 };
 
@@ -123,8 +126,8 @@ static void ls_espi_mmbi_mbox_rx(struct mbox_client *cl, void *mssg)
 
 	switch (msg->type) {
 	case LS_MMBI_HOST_RWS_WR:
-		/* The host advanced a pointer in the host_rws region */
-		ls_mmbi_host_write_notify(&priv->ins);
+		/* The host advanced a pointer in channel ch's host_rws */
+		ls_mmbi_host_write_notify(&priv->ins, msg->u.host_rws_wr.ch);
 		break;
 	case LS_MMBI_INFO:
 	case LS_MMBI_HOST_INT:
@@ -218,8 +221,16 @@ static int ls_espi_mmbi_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	/* Per-channel space sizes, 0 = channel not used */
+	ret = of_property_read_variable_u32_array(dev->of_node, "channel-size",
+						  priv->ins.channel_size,
+						  1, LS_MMBI_MAX_CHANNELS);
+	if (ret < 0) {
+		dev_err(dev, "missing 'channel-size'\n");
+		return ret;
+	}
+
 	priv->ins.dev = dev;
-	priv->ins.num_of_channels = 1;
 	priv->ins.host_int_type = LS_MMBI_HOST_INT_ESPI_VW;
 	priv->ins.host_int_location = vw_idx;
 	priv->ins.host_int_value = vw_data;

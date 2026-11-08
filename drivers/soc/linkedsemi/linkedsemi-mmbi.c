@@ -2,36 +2,35 @@
 /*
  * Linkedsemi LS2010 MMBI (Memory Mapped Bus Interface) common driver
  *
- * Implements the BMC-side MMBI protocol shared with the LS2010 host:
- * descriptor / host_ros / host_rws initialization and B2H/H2B buffer
- * space allocation, the channel state machine and the user space
- * interface.  The per-channel user space interface (miscdev
+ * Implements the BMC-side MMBI protocol shared with the LS2010 host
+ * (DSP0282 1.1.0): descriptor / host_ros / host_rws initialization and
+ * B2H/H2B buffer space allocation, the channel state machine and the
+ * user space interface.  The per-channel user space interface (miscdev
  * /dev/mmbi%d-ch%d with read/write/poll) keeps the same semantics as
  * the Aspeed MMBI driver (drivers/soc/aspeed/mmbi/aspeed-mmbi.c).
  *
  * Transport specific parts (mailbox exchange with the E906 firmware for
  * eSPI, BAR mapping and doorbell interrupt for PCIe) live in
- * linkedsemi-espi-mmbi.c and linkedsemi-pcie-mmbi.c.  Those drivers
- * allocate the shared region (dma_alloc_coherent) and hand it to
- * ls_mmbi_init() through struct ls_mmbi_ins.
+ * linkedsemi-espi-mmbi.c and linkedsemi-pcie-mmbi.c.  Those drivers map
+ * the shared reserved-memory region and hand it to ls_mmbi_init()
+ * through struct ls_mmbi_ins.
  *
  * Layout of the shared region (offsets are bytes, descriptor fields
  * marked /8 are stored in units of 8 bytes):
  *
  *   +---------------------------------------+ 0x00
- *   | struct ls_mmbi_desc (64B)             | descriptor
- *   +---------------------------------------+ 0x40
- *   | struct ls_mmbi_host_ros (8B)          | b2h_wp, h2b_rp (BMC owned)
- *   +---------------------------------------+ 0x48
- *   | struct ls_mmbi_host_rws (8B)          | h2b_wp, b2h_rp (host owned)
- *   +---------------------------------------+ 0x50
- *   | B2H buffer (BMC -> host)              | b2h_l bytes
+ *   | struct ls_mmbi_desc (256B)            | descriptor: prefix, ch0
+ *   |                                        | def, int def, ch1..6 defs
  *   +---------------------------------------+
- *   | H2B buffer (host -> BMC)              | h2b_l bytes
+ *   | channel 0 space: host_ros (8B),       | channel_size[0] bytes,
+ *   |   host_rws (8B), B2H + H2B buffers    | aligned to 8 bytes
  *   +---------------------------------------+
+ *   | channel 1 space                       | channel_size[1] bytes
+ *   +---------------------------------------+ ... back to back
  */
 
 #include <asm/barrier.h>
+#include <linux/bitfield.h>
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/idr.h>
@@ -62,14 +61,16 @@ static inline struct ls_mmbi_desc *ls_mmbi_desc(struct ls_mmbi_ins *mmbi)
 	return mmbi->virt + LS_MMBI_DESC_OFF;
 }
 
-static inline struct ls_mmbi_host_ros *ls_mmbi_ros(struct ls_mmbi_ins *mmbi)
+static inline struct ls_mmbi_host_ros *
+ls_mmbi_chan_ros(struct ls_mmbi_chan_desc *chan)
 {
-	return mmbi->virt + LS_MMBI_ROS_OFF;
+	return chan->mmbi->virt + chan->ros_off;
 }
 
-static inline struct ls_mmbi_host_rws *ls_mmbi_rws(struct ls_mmbi_ins *mmbi)
+static inline struct ls_mmbi_host_rws *
+ls_mmbi_chan_rws(struct ls_mmbi_chan_desc *chan)
 {
-	return mmbi->virt + LS_MMBI_RWS_OFF;
+	return chan->mmbi->virt + chan->rws_off;
 }
 
 /* Free space in a ring, wp/rp are byte offsets within [0, size) */
@@ -92,9 +93,8 @@ static u32 ls_mmbi_ptr(u32 reg)
 
 static void ls_mmbi_chan_refresh(struct ls_mmbi_chan_desc *chan)
 {
-	struct ls_mmbi_ins *mmbi = chan->mmbi;
-	struct ls_mmbi_host_ros *ros = ls_mmbi_ros(mmbi);
-	struct ls_mmbi_host_rws *rws = ls_mmbi_rws(mmbi);
+	struct ls_mmbi_host_ros *ros = ls_mmbi_chan_ros(chan);
+	struct ls_mmbi_host_rws *rws = ls_mmbi_chan_rws(chan);
 	struct ls_mmbi_chan_priv *priv = chan->priv;
 	u32 wp, rp;
 
@@ -110,20 +110,26 @@ static void ls_mmbi_chan_refresh(struct ls_mmbi_chan_desc *chan)
 	priv->tx_ready = ls_mmbi_avail(wp, rp, chan->b2h_l) > 0;
 }
 
-void ls_mmbi_host_write_notify(struct ls_mmbi_ins *mmbi)
+void ls_mmbi_host_write_notify(struct ls_mmbi_ins *mmbi, u8 ch)
 {
-	int i;
+	struct ls_mmbi_chan_desc *chan;
+	struct ls_mmbi_chan_priv *priv;
 
-	for (i = 0; i < mmbi->num_of_channels; i++) {
-		struct ls_mmbi_chan_desc *chan = &mmbi->chan_desc[i];
-		struct ls_mmbi_chan_priv *priv = chan->priv;
-
-		ls_mmbi_chan_refresh(chan);
-		if (priv->rx_ready)
-			wake_up_interruptible(&priv->rx_wait);
-		if (priv->tx_ready)
-			wake_up_interruptible(&priv->tx_wait);
+	if (ch >= mmbi->num_of_channels) {
+		dev_warn_ratelimited(mmbi->dev,
+				     "host write notify for invalid channel %u\n",
+				     ch);
+		return;
 	}
+
+	chan = &mmbi->chan_desc[ch];
+	priv = chan->priv;
+
+	ls_mmbi_chan_refresh(chan);
+	if (priv->rx_ready)
+		wake_up_interruptible(&priv->rx_wait);
+	if (priv->tx_ready)
+		wake_up_interruptible(&priv->tx_wait);
 }
 EXPORT_SYMBOL_GPL(ls_mmbi_host_write_notify);
 
@@ -139,8 +145,8 @@ static ssize_t ls_mmbi_chan_tx(struct ls_mmbi_chan_desc *chan,
 			       const u8 *data, size_t len)
 {
 	struct ls_mmbi_ins *mmbi = chan->mmbi;
-	struct ls_mmbi_host_ros *ros = ls_mmbi_ros(mmbi);
-	struct ls_mmbi_host_rws *rws = ls_mmbi_rws(mmbi);
+	struct ls_mmbi_host_ros *ros = ls_mmbi_chan_ros(chan);
+	struct ls_mmbi_host_rws *rws = ls_mmbi_chan_rws(chan);
 	u8 *buf = mmbi->virt + chan->b2h_ba;
 	u32 wp, rp, first;
 	size_t avail;
@@ -178,8 +184,8 @@ static ssize_t ls_mmbi_chan_rx(struct ls_mmbi_chan_desc *chan,
 			       u8 *data, size_t max_len)
 {
 	struct ls_mmbi_ins *mmbi = chan->mmbi;
-	struct ls_mmbi_host_ros *ros = ls_mmbi_ros(mmbi);
-	struct ls_mmbi_host_rws *rws = ls_mmbi_rws(mmbi);
+	struct ls_mmbi_host_ros *ros = ls_mmbi_chan_ros(chan);
+	struct ls_mmbi_host_rws *rws = ls_mmbi_chan_rws(chan);
 	u8 *buf = mmbi->virt + chan->h2b_ba;
 	u32 wp, rp, first, len;
 
@@ -342,18 +348,32 @@ static int ls_mmbi_chan_init_miscdev(struct ls_mmbi_chan_desc *chan)
 	return 0;
 }
 
+static void ls_mmbi_desc_ch_init(struct ls_mmbi_desc_ch *ch_desc,
+				 struct ls_mmbi_chan_desc *chan)
+{
+	ch_desc->b2h_ba = LS_MMBI_UNITS(chan->b2h_ba);
+	ch_desc->h2b_ba = LS_MMBI_UNITS(chan->h2b_ba);
+	ch_desc->b2h_l = chan->b2h_l;
+	ch_desc->h2b_l = chan->h2b_l;
+	ch_desc->buft = LS_MMBI_BUF_TYPE_VPSCB;
+	ch_desc->h_ros_p = LS_MMBI_UNITS(chan->ros_off);
+	ch_desc->h_rws_p = LS_MMBI_UNITS(chan->rws_off);
+}
+
 /*
- * Initialize the shared region: write the descriptor, clear host_ros /
- * host_rws and set the BMC state bits.  The B2H and H2B buffers split
- * the space left after the descriptor and pointer regions in half.
+ * Initialize the shared region per DSP0282 1.1.0: the descriptor
+ * describes the used channels (NOI + 1, numbered from 0); each
+ * channel's space (host_ros + host_rws + B2H/H2B buffers) is laid out
+ * back to back after the descriptor, aligned to 8 bytes.  The channel
+ * sizes come from the device tree "channel-size" property; 0 means the
+ * channel is not used and only trailing zeros are allowed.  The total
+ * descriptor + channel space must fit in the MMBI region.
  */
 static int ls_mmbi_init_layout(struct ls_mmbi_ins *mmbi)
 {
-	struct ls_mmbi_desc *desc;
-	struct ls_mmbi_host_ros *ros;
-	struct ls_mmbi_host_rws *rws;
-	u32 buf_total, buf_len;
-	u8 i;
+	struct ls_mmbi_desc *desc = ls_mmbi_desc(mmbi);
+	u32 offset = LS_MMBI_DESC_SIZE;
+	int i, num;
 
 	if (mmbi->size < LS_MMBI_MIN_SIZE ||
 	    mmbi->size > U32_MAX || (mmbi->size & 7)) {
@@ -362,26 +382,70 @@ static int ls_mmbi_init_layout(struct ls_mmbi_ins *mmbi)
 		return -EINVAL;
 	}
 
-	buf_total = mmbi->size - LS_MMBI_BUF_OFF;
-	buf_len = (buf_total / 2 / mmbi->num_of_channels) & ~7U;
-	if (buf_len == 0) {
-		dev_err(mmbi->dev, "MMBI region too small for %u channels\n",
-			mmbi->num_of_channels);
+	/* Lay out the used channels back to back after the descriptor */
+	for (i = 0; i < LS_MMBI_MAX_CHANNELS; i++) {
+		struct ls_mmbi_chan_desc *chan = &mmbi->chan_desc[i];
+		u32 ch_size = mmbi->channel_size[i];
+		u32 buf_len;
+
+		if (ch_size == 0)
+			break;
+
+		if (ch_size < LS_MMBI_CH_MIN_SIZE || (ch_size & 7)) {
+			dev_err(mmbi->dev,
+				"invalid channel %d size %#x\n", i, ch_size);
+			return -EINVAL;
+		}
+
+		chan->ros_off = offset;
+		chan->rws_off = offset + LS_MMBI_ROS_SIZE;
+		chan->b2h_ba = offset + LS_MMBI_ROS_SIZE + LS_MMBI_RWS_SIZE;
+
+		buf_len = (ch_size - LS_MMBI_ROS_SIZE - LS_MMBI_RWS_SIZE) / 2;
+		buf_len &= ~7U;
+		chan->b2h_l = buf_len;
+		chan->h2b_ba = chan->b2h_ba + buf_len;
+		chan->h2b_l = ch_size - LS_MMBI_ROS_SIZE - LS_MMBI_RWS_SIZE -
+			      buf_len;
+
+		offset += ch_size;
+	}
+
+	num = i;
+	if (num == 0) {
+		dev_err(mmbi->dev, "no MMBI channels configured\n");
+		return -EINVAL;
+	}
+
+	/* Only trailing channel-size entries may be zero */
+	for (; i < LS_MMBI_MAX_CHANNELS; i++) {
+		if (mmbi->channel_size[i]) {
+			dev_err(mmbi->dev,
+				"channel %d configured after unused channel\n",
+				i);
+			return -EINVAL;
+		}
+	}
+
+	/* Descriptor + channel spaces must fit in the MMBI region */
+	if (offset > mmbi->size) {
+		dev_err(mmbi->dev,
+			"MMBI region %zu bytes too small, need %u\n",
+			mmbi->size, offset);
 		return -EINVAL;
 	}
 
 	memset(mmbi->virt, 0, mmbi->size);
 
-	desc = ls_mmbi_desc(mmbi);
-	ros = ls_mmbi_ros(mmbi);
-	rws = ls_mmbi_rws(mmbi);
+	memcpy(desc->signature, LS_MMBI_SIGNATURE,
+	       sizeof(LS_MMBI_SIGNATURE) - 1);
+	desc->version = LS_MMBI_VERSION_1_1;
+	desc->noi_os_use = FIELD_PREP(LS_MMBI_NOI_MASK, num - 1);
 
-	memcpy(desc->signature, LS_MMBI_SIGNATURE, sizeof(LS_MMBI_SIGNATURE) - 1);
-	desc->version = LS_MMBI_VERSION_1_0;
-	desc->os_use = 0;
-	desc->buft = LS_MMBI_BUF_TYPE_VPSCB;
-	desc->h_ros_p = LS_MMBI_UNITS(LS_MMBI_ROS_OFF);
-	desc->h_rws_p = LS_MMBI_UNITS(LS_MMBI_RWS_OFF);
+	ls_mmbi_desc_ch_init(&desc->ch0, &mmbi->chan_desc[0]);
+	for (i = 1; i < num; i++)
+		ls_mmbi_desc_ch_init(&desc->ch[i - 1], &mmbi->chan_desc[i]);
+
 	desc->h_int_t = mmbi->host_int_type;
 	desc->h_int_l = mmbi->host_int_location;
 	desc->h_int_v = mmbi->host_int_value;
@@ -390,25 +454,15 @@ static int ls_mmbi_init_layout(struct ls_mmbi_ins *mmbi)
 	desc->bmc_int_v = mmbi->bmc_int_value;
 
 	/* BMC is up, not in reset */
-	ros->b2h_wp = LS_MMBI_STATE_B_U;
-	ros->h2b_rp = 0;
-	rws->h2b_wp = 0;
-	rws->b2h_rp = 0;
-
-	for (i = 0; i < mmbi->num_of_channels; i++) {
+	for (i = 0; i < num; i++) {
 		struct ls_mmbi_chan_desc *chan = &mmbi->chan_desc[i];
+		struct ls_mmbi_host_ros *ros = ls_mmbi_chan_ros(chan);
+		struct ls_mmbi_host_rws *rws = ls_mmbi_chan_rws(chan);
 
-		chan->b2h_ba = LS_MMBI_BUF_OFF + i * buf_len * 2;
-		chan->h2b_ba = chan->b2h_ba + buf_len;
-		chan->b2h_l = buf_len;
-		chan->h2b_l = buf_len;
+		memset(ros, 0, LS_MMBI_ROS_SIZE);
+		memset(rws, 0, LS_MMBI_RWS_SIZE);
+		ros->b2h_wp = LS_MMBI_STATE_B_U;
 	}
-
-	/* Only channel 0 layout is described in the single descriptor */
-	desc->b2h_ba = LS_MMBI_UNITS(mmbi->chan_desc[0].b2h_ba);
-	desc->h2b_ba = LS_MMBI_UNITS(mmbi->chan_desc[0].h2b_ba);
-	desc->b2h_l = mmbi->chan_desc[0].b2h_l;
-	desc->h2b_l = mmbi->chan_desc[0].h2b_l;
 
 	return 0;
 }
@@ -420,23 +474,13 @@ int ls_mmbi_init(struct ls_mmbi_ins *mmbi)
 	if (!mmbi || !mmbi->dev || !mmbi->virt)
 		return -EINVAL;
 
-	if (mmbi->num_of_channels == 0 ||
-	    mmbi->num_of_channels > LS_MMBI_MAX_CHANNELS) {
-		dev_err(mmbi->dev, "invalid number of channels %u\n",
-			mmbi->num_of_channels);
-		return -EINVAL;
-	}
-
-	if (mmbi->num_of_channels > 1)
-		dev_warn(mmbi->dev,
-			 "%u channels requested; the LS2010 shared descriptor "
-			 "layout only describes channel 0\n",
-			 mmbi->num_of_channels);
-
 	mmbi->ins_id = ida_alloc(&ls_mmbi_ida, GFP_KERNEL);
 	if (mmbi->ins_id < 0)
 		return mmbi->ins_id;
 
+	/* Lays out the channels from channel_size[] and sets
+	 * mmbi->num_of_channels.
+	 */
 	ret = ls_mmbi_init_layout(mmbi);
 	if (ret)
 		goto err_ida;
@@ -469,7 +513,7 @@ int ls_mmbi_init(struct ls_mmbi_ins *mmbi)
 
 	dev_info(mmbi->dev,
 		 "MMBI instance %d initialized: %zu bytes, %u channels, "
-		 "b2h/h2b buffers %u bytes each\n",
+		 "channel 0 b2h/h2b buffers %u bytes each\n",
 		 mmbi->ins_id, mmbi->size, mmbi->num_of_channels,
 		 mmbi->chan_desc[0].b2h_l);
 

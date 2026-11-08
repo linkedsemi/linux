@@ -91,12 +91,17 @@ static int ls_mmbi_pcie_raise_host_int(struct ls_mmbi_ins *ins)
 				 priv->epf->vfunc_no, PCI_IRQ_MSI,1);
 }
 
-/* Host wrote the BAR: refresh the channel state and wake pollers */
+/* Host wrote the BAR: the doorbell interrupt carries no channel number,
+ * so refresh every channel and wake their pollers.
+ */
 static irqreturn_t ls_mmbi_pcie_intr_handler(int irq, void *arg)
 {
 	struct ls_mmbi_pcie *priv = arg;
+	int i;
 
-	ls_mmbi_host_write_notify(&priv->ins);
+	for (i = 0; i < priv->ins.num_of_channels; i++)
+		ls_mmbi_host_write_notify(&priv->ins, i);
+
 	return IRQ_HANDLED;
 }
 
@@ -167,6 +172,15 @@ static int ls_mmbi_pcie_bar_setup(struct ls_mmbi_pcie *priv,
 
 	ins->virt = bar0->addr;
 	ins->size = bar0->size;
+
+	/* Per-channel space sizes, 0 = channel not used */
+	ret = of_property_read_variable_u32_array(child, "channel-size",
+						  ins->channel_size,
+						  1, LS_MMBI_MAX_CHANNELS);
+	if (ret < 0) {
+		dev_err(dev, "missing 'channel-size'\n");
+		goto err_clear_bar0;
+	}
 
 	/* BAR1: EPC page containing the doorbell address */
 	ret = of_property_read_u32(child, "mmbi-intr-addr", &intr_addr);
@@ -308,7 +322,7 @@ static int ls_mmbi_pcie_bind(struct pci_epf *epf)
 		goto err_clear_bars;
 
 	priv->ins.dev = dev;
-	priv->ins.num_of_channels = 1;
+	/* num_of_channels is derived from channel_size[] by ls_mmbi_init */
 	priv->ins.host_int_type = LS_MMBI_HOST_INT_PCIE;
 	priv->ins.host_int_location = 1;	/* MSI number */
 	priv->ins.host_int_value = 0;
