@@ -873,6 +873,10 @@
 			 *     the EPC page containing it.
 			 *   - mmbi-intr-value = value the host writes to
 			 *     the doorbell (bmc_int_value).
+			 *   - channel-size = per-channel space sizes (7
+			 *     entries), laid out back to back after the 256B
+			 *     descriptor; 0 means the channel is not used
+			 *     (only trailing zeros).
 			 *   - status = "disabled": board DTS overrides to
 			 *     "okay".
 			 */
@@ -883,6 +887,7 @@
 				interrupts = <191 4>;
 				mmbi-intr-addr = <0xd2000010>;
 				mmbi-intr-value = <0x1>;
+				channel-size = <0x4000 0x0 0x0 0x0 0x0 0x0 0x0>;
 				status = "disabled";
 			};
 

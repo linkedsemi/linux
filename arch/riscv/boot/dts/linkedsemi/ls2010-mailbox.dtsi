@@ -151,6 +151,9 @@
 		 *     (12-byte records, one struct ls_mmbi_msg).
 		 *   - vw-idx/vw-data are the virtual wire index/data carried
 		 *     in MMBI_HOST_INT.
+		 *   - channel-size = per-channel space sizes (7 entries), laid
+		 *     out back to back after the 256B descriptor; 0 means the
+		 *     channel is not used (only trailing zeros).
 		 *   - status = "disabled": board DTS overrides to "okay".
 		 */
 		espi_mmbi0: mmbi {
@@ -159,6 +162,7 @@
 			mboxes = <&mailbox 4 12 3 12 3>;	/* chan4, tx 12B×3, rx 12B×3 */
 			vw-idx = <6>;				/* VW index in MMBI_HOST_INT */
 			vw-data = <0x11>;			/* VW data in MMBI_HOST_INT (SCI) */
+			channel-size = <0x1000 0x0 0x0 0x0 0x0 0x0 0x0>;
 			status = "disabled";
 		};
 
