@@ -188,6 +188,17 @@ config GPIO_ASPEED_SGPIO
 	help
 	  Say Y here to support Aspeed AST2500 SGPIO functionality.
 
+config GPIO_LINKEDSEMI_SGPIO
+	tristate "Linkedsemi SGPIO support"
+	depends on (ARCH_LINKEDSEMI || COMPILE_TEST) && OF_GPIO
+	select GPIOLIB_IRQCHIP
+	help
+	  Say Y or M here to support the Linkedsemi Serial GPIO (SGPIO)
+	  master controller.
+
+	  This driver can also be built as a module. If so, the module will
+	  be called linkedsemi-sgpio.
+
 config GPIO_ATH79
 	tristate "Atheros AR71XX/AR724X/AR913X GPIO support"
 	default y if ATH79
