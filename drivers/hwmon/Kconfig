@@ -443,6 +443,17 @@ config SENSORS_ASPEED_G6
 	  This driver can also be built as a module. If so, the module
 	  will be called aspeed_g6_pwm_tach.
 
+config LINKEDSEMI_CAP
+	tristate "Linkedsemi LS2010 CAP frequency capture"
+	depends on OF && HWMON
+	help
+	  Say yes here to build support for the Linkedsemi LS2010 CAP/TACH
+	  frequency capture block. Each enabled channel is exposed through
+	  hwmon as fanN_input (RPM), using a fixed 2 pulses per revolution.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called linkedsemi-cap.
+
 config SENSORS_ATXP1
 	tristate "Attansic ATXP1 VID controller"
 	depends on I2C

@@ -391,6 +391,16 @@ config PWM_LP3943
 	  To compile this driver as a module, choose M here: the module
 	  will be called pwm-lp3943.
 
+config LINKEDSEMI_PWM
+	tristate "Linkedsemi LS2010 PWM controller"
+	depends on OF && (ARCH_LINKEDSEMI || COMPILE_TEST)
+	help
+	  PWM driver for the Linkedsemi LS2010 SoC. Each channel has a
+	  16-bit period and high-time counter driven by a prescaled clock.
+
+	  To compile this driver as a module, choose M here: the module
+	  will be called linkedsemi-pwm.
+
 config PWM_LPC18XX_SCT
 	tristate "LPC18xx/43xx PWM/SCT support"
 	depends on ARCH_LPC18XX || COMPILE_TEST
