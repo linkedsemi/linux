@@ -1348,6 +1348,10 @@ static const struct of_device_id sdhci_dwcmshc_dt_ids[] = {
 		.data = &sdhci_dwcmshc_pdata,
 	},
 	{
+		.compatible = "linkedsemi,dwcmshc-sdhci",
+		.data = &sdhci_dwcmshc_pdata,
+	},
+	{
 		.compatible = "sophgo,cv1800b-dwcmshc",
 		.data = &sdhci_dwcmshc_cv18xx_pdata,
 	},

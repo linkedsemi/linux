@@ -1659,6 +1659,8 @@ static const struct of_device_id dw_dma_of_id_table[] = {
 	{
 		.compatible = "snps,axi-dma-1.01a"
 	}, {
+		.compatible = "linkedsemi,axi-dma-1.01a"
+	}, {
 		.compatible = "intel,kmb-axi-dma",
 		.data = (void *)AXI_DMA_FLAG_HAS_APB_REGS,
 	}, {

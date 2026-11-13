@@ -230,7 +230,7 @@
 		};
 
 		uart12: serial@9600e000 {
-			compatible = "snps,dw-apb-uart";
+			compatible = "linkedsemi,dw-apb-uart","ns16550";
 			reg = <0x00 0x9600e000 0x0 0x1000>;
 			interrupts = <71 4>;
 			clock-frequency = <37037000>;
@@ -548,7 +548,7 @@
 		};
 
 		i3c0: i3c@01304000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x01304000 0x0 0x1000>;
 			interrupts = <37 4>;
 			clocks = <&i3c_clk>;
@@ -560,7 +560,7 @@
 		};
 
 		i3c1: i3c@01305000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x01305000 0x0 0x1000>;
 			interrupts = <36 4>;
 			clocks = <&i3c_clk>;
@@ -571,7 +571,7 @@
 		};
 
 		i3c2: i3c@01306000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x01306000 0x0 0x1000>;
 			interrupts = <35 4>;
 			clocks = <&i3c_clk>;
@@ -582,7 +582,7 @@
 		};
 
 		i3c3: i3c@01307000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x01307000 0x0 0x1000>;
 			interrupts = <34 4>;
 			clocks = <&i3c_clk>;
@@ -593,7 +593,7 @@
 		};
 
 		i3c4: i3c@01308000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x01308000 0x0 0x1000>;
 			interrupts = <33 4>;
 			clocks = <&i3c_clk>;
@@ -604,7 +604,7 @@
 		};
 
 		i3c5: i3c@01309000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x01309000 0x0 0x1000>;
 			interrupts = <32 4>;
 			clocks = <&i3c_clk>;
@@ -615,7 +615,7 @@
 		};
 
 		i3c6: i3c@0130a000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x0130a000 0x0 0x1000>;
 			interrupts = <31 4>;
 			clocks = <&i3c_clk>;
@@ -626,7 +626,7 @@
 		};
 
 		i3c7: i3c@0130b000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x0130b000 0x0 0x1000>;
 			interrupts = <30 4>;
 			clocks = <&i3c_clk>;
@@ -637,7 +637,7 @@
 		};
 
 		i3c8: i3c@42000000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42000000 0x0 0x1000>;
 			interrupts = <29 4>;
 			clocks = <&i3c_clk>;
@@ -648,7 +648,7 @@
 		};
 
 		i3c9: i3c@42001000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42001000 0x0 0x1000>;
 			interrupts = <28 4>;
 			clocks = <&i3c_clk>;
@@ -659,7 +659,7 @@
 		};
 
 		i3c10: i3c@42002000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42002000 0x0 0x1000>;
 			interrupts = <27 4>;
 			clocks = <&i3c_clk>;
@@ -670,7 +670,7 @@
 		};
 
 		i3c11: i3c@42003000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42003000 0x0 0x1000>;
 			interrupts = <26 4>;
 			clocks = <&i3c_clk>;
@@ -681,7 +681,7 @@
 		};
 
 		i3c12: i3c@42004000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42004000 0x0 0x1000>;
 			interrupts = <25 4>;
 			clocks = <&i3c_clk>;
@@ -692,7 +692,7 @@
 		};
 
 		i3c13: i3c@42005000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42005000 0x0 0x1000>;
 			interrupts = <24 4>;
 			clocks = <&i3c_clk>;
@@ -703,7 +703,7 @@
 		};
 
 		i3c14: i3c@42006000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42006000 0x0 0x1000>;
 			interrupts = <23 4>;
 			clocks = <&i3c_clk>;
@@ -714,7 +714,7 @@
 		};
 
 		i3c15: i3c@42007000 {
-			compatible = "snps,dw-i3c-master-1.00a";
+			compatible = "linkedsemi,i3c";
 			reg = <0x00 0x42007000 0x0 0x1000>;
 			interrupts = <22 4>;
 			clocks = <&i3c_clk>;
@@ -725,7 +725,7 @@
 		};
 
 		emmc: mmc@92000000 {
-			compatible = "snps,dwcmshc-sdhci";
+			compatible = "linkedsemi,dwcmshc-sdhci";
 			/* reg window is 16 KiB (0x92000000-0x92003FFF) per LS2010PIX User Manual V0.3, Section 3.1.2 System Address map */
 			reg = <0x00 0x92000000 0x0 0x4000>;
 			interrupts = <60 4>;
@@ -742,10 +742,9 @@
 		sgmii0: ethernet@65000000 {
 			/* linkedsemi,lsbmc-evk-dwmac first: U-Boot binds its
 			 * DWC EQoS driver on it; the kernel still binds via
-			 * "snps,dwmac" (stmmac).
+			 * "linkedsemi,dwmac" (stmmac).
 			 */
-			compatible = "linkedsemi,lsbmc-evk-dwmac", "snps,dwmac",
-				     "snps,dwmac-5.20";
+			compatible = "linkedsemi,dwmac-5.20";
 			reg = <0x0 0x65000000 0x0 0x10000>;
 			interrupts = <13 4>;
 			interrupt-names = "macirq";
@@ -930,7 +929,7 @@
 		};
 
 		fwqspi: spi@61000000 {
-			compatible = "snps,dwc-ssi-1.01a";
+			compatible = "linkedsemi,dwc-ssi-1.01a";
 			reg = <0x0 0x61000000 0x0 0x10000>;
 			interrupts = <58 4>;
 			#address-cells = <1>;
@@ -950,7 +949,7 @@
 		};
 
 		spi0: spi@62000000 {
-			compatible = "snps,dw-apb-ssi";
+			compatible = "linkedsemi,dw-apb-ssi";
 			reg = <0x0 0x62000000 0x0 0x10000>;
 			interrupts = <5 4>;
 			#address-cells = <1>;
@@ -969,7 +968,7 @@
 		};
 
 		spi1: spi@63000000 {
-			compatible = "snps,dw-apb-ssi";
+			compatible = "linkedsemi,dw-apb-ssi";
 			reg = <0x0 0x63000000 0x0 0x10000>;
 			interrupts = <4 4>;
 			#address-cells = <1>;
@@ -983,7 +982,7 @@
 		};
 
 		spi2: spi@64000000 {
-			compatible = "snps,dw-apb-ssi";
+			compatible = "linkedsemi,dw-apb-ssi";
 			reg = <0x0 0x64000000 0x0 0x10000>;
 			interrupts = <3 4>;
 			#address-cells = <1>;
