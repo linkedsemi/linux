@@ -17,6 +17,21 @@ config PECI_ASPEED
 	  This driver can also be built as a module. If so, the module will
 	  be called peci-aspeed.
 
+config PECI_LINKEDSEMI
+	tristate "Linkedsemi LS2010 PECI support"
+	depends on PECI
+	depends on ARCH_LINKEDSEMI || COMPILE_TEST
+	depends on OF
+	depends on HAS_IOMEM
+	depends on COMMON_CLK
+	help
+	  This option enables the PECI controller driver for the Linkedsemi
+	  LS2010 SoC. It allows the BMC to discover devices connected to it
+	  and communicate with them using the PECI protocol.
+
+	  This driver can also be built as a module. If so, the module will
+	  be called peci-linkedsemi.
+
 config PECI_NPCM
 	tristate "Nuvoton NPCM PECI support"
 	depends on ARCH_NPCM || COMPILE_TEST
